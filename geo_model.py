@@ -15,7 +15,7 @@ class GeoModel(mesa.Model):
         # add countries to grid
         ac = mg.AgentCreator(agent_class=Country.Country, model=self)
         raise NotImplementedError("Get EU countries geojson.")
-        self.agents = ac.from_GeoJSON(GeoJSON=eu_countries, unique_id="NAME")
+        self.agents = ac.from_GeoJSON(GeoJSON=eu_countries, unique_id="NAME") # TODO get EU countries geojson
         self.grid.add_agents(self.agents)
 
         # set agents initial state
@@ -25,8 +25,10 @@ class GeoModel(mesa.Model):
             agent.cost_clean = self.cost_clean
             # set initial state of each agent here
 
-
-        self.data_collector = meas.datacollection.DataCollector({"avg_energy":"avg_energy"}) # add more here
+        # initialise data collector
+        self.data_collector = mesa.datacollection.DataCollector(
+            model_reporters={"Welfare": "welfare"},
+            agent_reporters={"perc_energy_met": "perc_energy_met"}  # add more here
 
         self.log_data()
 

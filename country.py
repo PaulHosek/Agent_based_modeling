@@ -44,8 +44,13 @@ class Country(mg.GeoAgent):
         Do agents actions in each step here.
         :return:
         """
+        self.calculate_welfare()
         # decide if build plant or not
-        # do trading
+        # do building if yes
+        self.perc_energy_met = self.evaluate_energy()
+
+        # do trading as until there are either no buying countries anymore or
+        # they do not have any neighbors that sell anymore
 
         pass
 
@@ -62,12 +67,12 @@ class Country(mg.GeoAgent):
         """
         pass
 
-    def build_plant(self,type_plant="dirty"):
+    def build_plant(self, type_plant="dirty"):
         """
         Build some plant,
         :return:
         """
-        if type_plant=="dirty":
+        if type_plant == "dirty":
             self.nr_dirty += 1
             self.money -= self.cost_dirty
         elif type_plant == 'clean':
@@ -75,8 +80,6 @@ class Country(mg.GeoAgent):
             self.money -= self.cost_clean
         else:
             raise ValueError(f"""{type_plant} is not a valid plant. Use the tag "dirty" or "clean".""")
-        self.perc_energy_met = self.evaluate_energy()
-
 
     def get_selling_neighbour(self):
         """
@@ -85,14 +88,15 @@ class Country(mg.GeoAgent):
         """
         pass
 
+    def get_neighbor(self):
+        """
+        Get a list of neighbours.
+        :return:
+        """
+
     def do_trade(self, neighbor_id):
         """
         Do trade for energy with selling neighbor.
 
         """
         pass
-
-
-
-
-
