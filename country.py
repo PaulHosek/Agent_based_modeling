@@ -6,22 +6,27 @@ import geo_model
 
 
 class Country(mg.GeoAgent):
-    def __init__(self, unique_id, model, geometry):
+    def __init__(self, unique_id, model, geometry,crs,
+                 metabolism = {"energy":0,"money":0}, wealth = {"energy":0,"money":0}):
         """
 
         :param unique_id: Name of country
         :param model:
         :param geometry:
         """
-        super().__init__(unique_id, model, geometry)
-        self.money: float = 0
+        super().__init__(unique_id, model, geometry,crs)
+        # attributes
         self.name: str = 'na'
-        self.e_demand: float = 0
+        self.metabolism: dict = metabolism
+        self.wealth: dict = wealth
+        self.welfare: float = 0
+
+
+        # for later
         self.pred_dirty: float = 0
         self.pred_clean: float = 0
         self.nr_dirty: int = 0
         self.nr_clean: int = 0
-        self.perc_energy_met: float = 0
 
         # attributes set by model
         self.cost_dirty: float = 0
@@ -39,33 +44,47 @@ class Country(mg.GeoAgent):
         """
         pass
 
-    def step(self):
+    def step(self) -> None:
         """
         Do agents actions in each step here.
         :return:
         """
-        self.calculate_welfare()
-        # decide if build plant or not
-        # do building if yes
-        self.perc_energy_met = self.evaluate_energy()
+        self.eat() # get energy and money for the time step
+        self.consume() # consume energy
+        self.welfare = self.calculate_welfare()
+        print(self.welfare)
+        # self.do_trade()
 
         # do trading as until there are either no buying countries anymore or
         # they do not have any neighbors that sell anymore
 
         pass
 
-    def calculate_welfare(self):
+    def eat(self)->None:
+        """Generate energy and money."""
+        self.wealth['energy'] += self.metabolism["energy"]
+        self.wealth['money'] += self.metabolism["money"]
+
+    def consume(self)->None:
+        """Use up energy and money"""
+        self.wealth['energy'] -= self.metabolism["energy"]
+        self.wealth['money'] -= self.metabolism["money"]
+
+    def calculate_welfare(self) -> float:
         """Calculate what action to take based on predispositions,
          energy level, money and last step's outcome.
         """
-        pass
+        mt = self.metabolism["money"] + self.metabolism["energy"]
+        w_energy= self.wealth['energy'] ** (self.metabolism["energy"] / mt)
+        w_money = self.wealth['money'] ** (self.metabolism["money"] / mt)
 
-    def evaluate_energy(self):
-        """
-        Calculate the current energy percentage met based on nr plants and their output.
-        :return:
-        """
-        pass
+        for i in [w_money,w_energy]:
+            if isinstance(i, complex):
+                i = 0
+
+        return w_money*w_energy
+
+
 
     def build_plant(self, type_plant="dirty"):
         """
@@ -100,3 +119,29 @@ class Country(mg.GeoAgent):
 
         """
         pass
+
+    ##########################################################################
+    #
+    #          Functions for later
+    #
+    #########################################################################
+
+    # def decide_build(self) -> int:
+    #     """
+    #     Decide if build plant and which one.
+    #     0 = build no plant
+    #     1 = build dirty
+    #     2 = build clean
+    #     :return: 0,1,2
+    #     """
+    #     # calculate cost of only trading, based on last turn's average trade cost
+    #     # calculate cost of buying a green plant and trading for the rest
+    #     # calculate cost of buying a dirty plant and trading for the rest
+    #     pass
+
+    # def evaluate_energy(self):
+    #     """
+    #     Calculate the current energy percentage met based on nr plants and their output.
+    #     :return:
+    #     """
+    #     pass
