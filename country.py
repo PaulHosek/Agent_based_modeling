@@ -1,13 +1,12 @@
 import mesa
 import mesa_geo as mg
 import typing
-
 import geo_model
 
 
 class Country(mg.GeoAgent):
     def __init__(self, unique_id, model, geometry,crs,
-                 metabolism = {"energy":0,"money":0}, wealth = {"energy":0,"money":0}):
+                 metabolism = {"energy":1,"money":1}, wealth = {"energy":1,"money":1}):
         """
 
         :param unique_id: Name of country
@@ -53,12 +52,9 @@ class Country(mg.GeoAgent):
         self.consume() # consume energy
         self.welfare = self.calculate_welfare()
         print(self.welfare)
-        # self.do_trade()
 
-        # do trading as until there are either no buying countries anymore or
-        # they do not have any neighbors that sell anymore
 
-        pass
+
 
     def eat(self)->None:
         """Generate energy and money."""
@@ -78,10 +74,11 @@ class Country(mg.GeoAgent):
         w_energy= self.wealth['energy'] ** (self.metabolism["energy"] / mt)
         w_money = self.wealth['money'] ** (self.metabolism["money"] / mt)
 
-        for i in [w_money,w_energy]:
+        for i in [w_money, w_energy]:
             if isinstance(i, complex):
                 i = 0
 
+        print(w_money*w_energy)
         return w_money*w_energy
 
 
