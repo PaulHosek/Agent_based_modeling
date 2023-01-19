@@ -21,12 +21,10 @@ class GeoModel(mesa.Model):
         # add countries to grid
         ac = mg.AgentCreator(agent_class=country.Country, model=self)
         # self.agents = ac.from_GeoJSON(GeoJSON='eu_countries.geojson', unique_id="NAME")
-        self.agents = ac.from_file("eu_countries.geojson", unique_id="NAME")
+        self.agents = ac.from_file("eu_countries_3857.geojson", unique_id="NAME_ENGL")
         # TODO test function
-        # self.agents = self.agents[:3]
 
         self.grid.add_agents(self.agents)
-        print(self.grid)
 
         # set agents initial state
         rng = np.random.default_rng()
@@ -36,9 +34,6 @@ class GeoModel(mesa.Model):
             agent.metabolism = {"energy": nums[0], "money": nums[1]}
             agent.wealth = {"energy": nums[2], "money": nums[3]}
 
-            # agent.cost_dirty = self.cost_dirty
-            # agent.cost_clean = self.cost_clean
-            # set initial state of each agent here
 
         # initialise data collector
         self.data_collector = mesa.datacollection.DataCollector({"Welfare": 'average_welfare'})
@@ -77,7 +72,7 @@ class GeoModel(mesa.Model):
 
         # do global actions here if any exist e.g., nuke random country idk
         # ...
-
+        self.trading_cycle()
         self.log_data()
 
         # # set agent states of next step
@@ -90,7 +85,7 @@ class GeoModel(mesa.Model):
         # do trading as until there are either no buying countries anymore or
         # they do not have any neighbors that sell anymore
 
-    def trading_cycle(self):
+    def trading_cycle(self) -> None:
         """Do full trading cycle.
         1. Find buying countries
         2. Find selling countries
@@ -100,58 +95,56 @@ class GeoModel(mesa.Model):
             c. MRS ratio leads to no trade
 
         """
-        buyers = self.find_buyers()
-        sellers = self.find_sellers()
+        all_buyers = self.find_buyers()
+        all_sellers = self.find_sellers()
 
-        for buyer in buyers:
-            sell_neigh = set(sellers).intersection(self.model.grid.get_neighbors(self))
-            # find intersection
-            # TODO loop over neighbours until there is no trading anymore
-            cur_neigh = random.choice(sell_neigh)
-            sell_neigh.pop(cur_neigh)
+        for buyer in all_buyers:
+            sell_neigh: set = self.get_selling_neigh(buyer, all_sellers)
+            # loop over neighbours until there is no trading anymore
+            while sell_neigh and buyer.wealth["energy"] < 1 and buyer.wealth["money"] > 0:
 
-            if buyer.MRS == cur_neigh.MRS:
-                continue
-            else:
-                # Calculate Price
-                price = gmean([buyer.MRS, cur_neigh.MRS])
-                if price > 1:
-                    money = price  # TODO figure out when this works
-                    energy = 1
+                cur_neigh = np.random.choice(sell_neigh)
+                if buyer.MRS == cur_neigh.MRS:
+                    sell_neigh.remove(cur_neigh)
+                    continue
+
+                # determine price
                 else:
-                    energy = 1 / price
-                    money = 1
+                    price: float = gmean([buyer.MRS, cur_neigh.MRS], dtype=float)
+                    if price > 1:
+                        money: float = price
+                        energy: float = 1
+                    else:
+                        energy: float = 1 / price
+                        money: float = 1
 
-            # do trades
-            if buyer.MRS > cur_neigh.MRS:
-                if buyer.draft_trade(energy, money, cur_neigh):
-                    buyer.wealth['energy'] += energy
-                    buyer.wealth['money'] -= money
-                    cur_neigh.wealth['money'] += money
-                    cur_neigh.wealth['energy'] -= energy
-                    # buyer.model.price_record[buyer.model.step_num].append(price)
-                    buyer.calculate_welfare()
-                    cur_neigh.calculate_welfare()
-                    buyer.make_link(cur_neigh)
+                # do trades
+                if buyer.MRS > cur_neigh.MRS:
+                    if self.isbeneficial(buyer, energy, money, cur_neigh):
+                        buyer.wealth['energy'] += energy
+                        buyer.wealth['money'] -= money
+                        cur_neigh.wealth['money'] += money
+                        cur_neigh.wealth['energy'] -= energy
+                        buyer.calculate_welfare()
+                        cur_neigh.calculate_welfare()
+                        # buyer.model.price_record[buyer.model.step_num].append(price)
+                        # buyer.make_link(cur_neigh)
+                else:
+                    if self.isbeneficial(cur_neigh, energy, money, buyer):
+                        buyer.wealth['energy'] -= energy
+                        buyer.wealth['money'] += money
+                        cur_neigh.wealth['money'] -= money
+                        cur_neigh.wealth['energy'] += energy
+                        buyer.calculate_welfare()
+                        cur_neigh.calculate_welfare()
+                        # buyer.model.price_record[buyer.model.step_num].append(price)
+                        # buyer.make_link(cur_neigh)
 
-
-
-            else:
-                if cur_neigh.draft_trade(energy, money, buyer):
-                    buyer.wealth['energy'] -= energy
-                    buyer.wealth['money'] += money
-                    cur_neigh.wealth['money'] -= money
-                    cur_neigh.wealth['energy'] += energy
-                    buyer.calculate_welfare()
-                    cur_neigh.calculate_welfare()
-                    # buyer.model.price_record[buyer.model.step_num].append(price)
-                    buyer.make_link(cur_neigh)  # TODO fix this
-
-    def find_sellers(self):  # TODO in model
+    def find_sellers(self):
         """Return list of selling neighbours."""
         return [agent for agent in self.agents if agent.wealth['energy'] > 100]
 
-    def find_buyers(self):  # TODO in model
+    def find_buyers(self):
         """Return list of buying neighbours."""
         buyers = list()
         for agent in self.agents:
@@ -159,9 +152,18 @@ class GeoModel(mesa.Model):
                 buyers.append(agent)
         return buyers
 
-    def if_trade(self, buying, energy, money, selling):
+
+    def get_selling_neigh(self,buyer, sellers: list):  # TODO define sellers
         """
-        Decide on expected
+            Returns set of selling neighbours for a buying country
+        """
+        neighbours = set(self.grid.get_neighbors(buyer))
+        selling_neigh = neighbours.intersection(set(sellers))
+        return selling_neigh
+
+    def isbeneficial(self, buying, energy, money, selling):
+        """
+        Test if trade will result in increased welfare for both agents.
         :param buying:
         :param energy:
         :param money:
@@ -200,49 +202,21 @@ class GeoModel(mesa.Model):
             return False
 
     @staticmethod
-    @numba.njit(fastmath=True, nopython=True)
+    @numba.jit(fastmath=True,nopython=True)
     def welfare_single(w1, m1, mt):
         """Welfare function of only one commodity for the What-if analysis."""
-        return np.power(w1, m1 / mt)
+        return np.power(w1, np.divide(m1, mt))
 
     @staticmethod
-    @numba.njit(fastmath=True, nopython=True)
+    @numba.jit(fastmath=True,nopython=True)
     def mrs(w1, m1, w2, m2):
-        """Welfare function of only one commodity for the What-if analysis."""
+        """Calculate Marginal Rate of Substitution for specific parameters. Needed for what-if analysis."""
         return np.devide(np.multiply(w1, m2), np.multiply(w2, m1))
-
-    @staticmethod
-    def get_selling_neigh(buyer, sellers):  # TODO define sellers
-        """
-            Returns set of selling neighbours.
-        """
-        neighbours = set(buyer.grid.get_neighbors(buyer))
-        selling_neigh = neighbours.intersection(set(sellers))
-        return selling_neigh
-
-    def init_test_pop(self):
-        """Initial test population."""
-        netherlands_metab = {"energy": 0.1, "money": 0.1}
-        netherlands_wealth = {"energy": 0.5, "money": 0.6}
-
-        poland_metab = {"energy": 0.1, "money": 0.1}
-        poland_wealth = {"energy": 0.7, "money": 0.2}
-
-        germany_metab = {"energy": 0.1, "money": 0.1}
-        germany_wealth = {"energy": 0.4, "money": 0.7}
-
-        NL = country.Country(metabolism=netherlands_metab, wealth=netherlands_wealth)
-        PO = country.Country(metabolism=poland_metab, wealth=poland_wealth)
-        GE = country.Country(metabolism=germany_metab, wealth=germany_wealth)
-
-        # create germany, netherlands and poland
-        # assign rand attributes
 
 
 if __name__ == "__main__":
     new = GeoModel()
     new.run_model(5)
     data = new.data_collector.get_model_vars_dataframe()
-    print(data)
     data.plot()
     plt.show()

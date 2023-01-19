@@ -2,10 +2,11 @@ import mesa
 import mesa_geo as mg
 import typing
 import geo_model
-
+import numpy as np
+import numba
 
 class Country(mg.GeoAgent):
-    def __init__(self, unique_id, model, geometry,crs,
+    def __init__(self, unique_id, model, geometry, crs,
                  metabolism = {"energy":1,"money":1}, wealth = {"energy":1,"money":1}):
         """
 
@@ -13,7 +14,7 @@ class Country(mg.GeoAgent):
         :param model:
         :param geometry:
         """
-        super().__init__(unique_id, model, geometry,crs)
+        super().__init__(unique_id, model, geometry, crs)
         # attributes
         self.name: str = 'na'
         self.metabolism: dict = metabolism
@@ -51,9 +52,7 @@ class Country(mg.GeoAgent):
         self.eat() # get energy and money for the time step
         self.consume() # consume energy
         self.welfare = self.calculate_welfare()
-        print(self.welfare)
-
-
+        self.mrs = self.calculate_mrs()
 
 
     def eat(self)->None:
@@ -66,20 +65,26 @@ class Country(mg.GeoAgent):
         self.wealth['energy'] -= self.metabolism["energy"]
         self.wealth['money'] -= self.metabolism["money"]
 
+    # @numba.jit(fastmath=True, nopython=False)
     def calculate_welfare(self) -> float:
         """Calculate what action to take based on predispositions,
          energy level, money and last step's outcome.
         """
-        mt = self.metabolism["money"] + self.metabolism["energy"]
-        w_energy= self.wealth['energy'] ** (self.metabolism["energy"] / mt)
-        w_money = self.wealth['money'] ** (self.metabolism["money"] / mt)
+        mt = np.add(self.metabolism["money"], self.metabolism["energy"])
+        w_energy= np.power(self.wealth['energy'], np.divide(self.metabolism["energy"], mt))
+        w_money = np.power(self.wealth['money'], np.divide(self.metabolism["money"], mt))
 
         for i in [w_money, w_energy]:
             if isinstance(i, complex):
                 i = 0
 
-        print(w_money*w_energy)
-        return w_money*w_energy
+        return np.multiply(w_money, w_energy)
+
+    # @numba.jit(fastmath=True, nopython=True)
+    def calculate_mrs(self) -> float:
+        """Calculate Marginal Rate of Substitution (MRS)."""
+        return np.divide(np.multiply(self.wealth["energy"], self.metabolism["money"]),
+                         np.multiply(self.wealth["money"], self.wealth["energy"]))
 
 
 
