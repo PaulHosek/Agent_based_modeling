@@ -21,8 +21,7 @@ class Country(mg.GeoAgent):
         self.wealth: dict = wealth
         self.welfare: float = 0.0
         self.mrs: float = 0.0
-        self.calculate_welfare()
-        self.calculate_mrs()
+
 
 
         # for later
@@ -68,9 +67,9 @@ class Country(mg.GeoAgent):
         self.wealth['energy'] -= self.metabolism["energy"]
         self.wealth['money'] -= self.metabolism["money"]
         if self.wealth['energy'] < 0:
-            self.wealth['energy'] = 0
+            self.wealth['energy'] = 0.01
         if self.wealth['money'] < 0:
-            self.wealth['money'] = 0
+            self.wealth['money'] = 0.01
 
     # @numba.jit(fastmath=True, nopython=False)
     def calculate_welfare(self) -> None:
