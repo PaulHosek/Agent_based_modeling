@@ -67,6 +67,10 @@ class Country(mg.GeoAgent):
         """Use up energy and money"""
         self.wealth['energy'] -= self.metabolism["energy"]
         self.wealth['money'] -= self.metabolism["money"]
+        if self.wealth['energy'] < 0:
+            self.wealth['energy'] = 0
+        if self.wealth['money'] < 0:
+            self.wealth['money'] = 0
 
     # @numba.jit(fastmath=True, nopython=False)
     def calculate_welfare(self) -> None:
