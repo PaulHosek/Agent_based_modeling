@@ -55,9 +55,9 @@ class Country(mg.GeoAgent):
         Do agents actions in each step here.
         :return:
         """
-        self.collect()
-        self.build()
-        # self.eat()
+        # self.collect()
+        # self.build()
+        self.eat()
         self.consume()  # consume energy
         self.calculate_welfare()
         self.calculate_mrs()
@@ -108,31 +108,31 @@ class Country(mg.GeoAgent):
 
 
 
-    def calc_effective_welfare(self) -> None:
-        """
-        Calculate welfare. Include both influx of
-        money and produced energy from plants in equation.
-        """
-        m_energy = self.metabolism["energy"] - self.produced_energy
-        m_money = self.metabolism["money"] - self.influx_money
-        mt = np.add(m_energy, m_money)
-        # print(self.wealth['energy'], self.metabolism["energy"], mt)
+    # def calc_effective_welfare(self) -> None:
+    #     """
+    #     Calculate welfare. Include both influx of
+    #     money and produced energy from plants in equation.
+    #     """
+    #     m_energy = self.metabolism["energy"] - self.produced_energy
+    #     m_money = self.metabolism["money"] - self.influx_money
+    #     mt = np.add(m_energy, m_money)
+    #     # print(self.wealth['energy'], self.metabolism["energy"], mt)
+    #
+    #     w_energy = np.power(self.wealth['energy'], np.divide(m_energy, mt))
+    #     w_money = np.power(self.wealth['money'], np.divide(m_money, mt))
+    #
+    #     for i in [w_money, w_energy]:
+    #         if isinstance(i, complex):
+    #             i = 0
+    #
+    #     self.welfare = np.multiply(w_money, w_energy)
 
-        w_energy = np.power(self.wealth['energy'], np.divide(m_energy, mt))
-        w_money = np.power(self.wealth['money'], np.divide(m_money, mt))
-
-        for i in [w_money, w_energy]:
-            if isinstance(i, complex):
-                i = 0
-
-        self.welfare = np.multiply(w_money, w_energy)
 
 
-
-    # def eat(self) -> None:
-    #     """Generate energy and money."""
-    #     self.wealth['energy'] += self.metabolism["energy"]
-    #     self.wealth['money'] += self.metabolism["money"]
+    def eat(self) -> None:
+        """Generate energy and money."""
+        self.wealth['energy'] += self.metabolism["energy"]
+        self.wealth['money'] += self.metabolism["money"]
 
     def consume(self) -> None:
         """Use up energy and money"""
