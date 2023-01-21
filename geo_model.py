@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats.mstats import gmean
 import numba
+import time
 import random
 
 
@@ -21,7 +22,6 @@ class GeoModel(mesa.Model):
 
         # add countries to grid
         ac = mg.AgentCreator(agent_class=country.Country, model=self)
-        # self.agents = ac.from_GeoJSON(GeoJSON='europe_countries.geojson', unique_id="NAME")
         self.agents = ac.from_file("europe_countries.geojson", unique_id="NAME")
         # TODO remove countries not in EU
         self.grid.add_agents(self.agents)
@@ -31,21 +31,14 @@ class GeoModel(mesa.Model):
         for agent in self.agents:
             self.schedule.add(agent)
             nums = rng.uniform(0.01, 1, size=4)
-            metabs = rng.uniform(0.01,0.1,size=2)
+            metabs = rng.uniform(0.01, 0.1, size=2)
             agent.metabolism = {"energy": metabs[0], "money": metabs[1]}
             agent.wealth = {"energy": nums[2], "money": nums[3]}
             agent.calculate_welfare()
             agent.calculate_mrs()
-        print([a.welfare for a in self.agents])
-        total_welfare = 0
-        for agent in self.agents:
-            total_welfare += agent.welfare
-
-        self.average_welfare = total_welfare / len(self.agents)
-        print("welfare initial", self.average_welfare)
 
         self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Welfare": 'average_welfare'},
-                                                                ) # agent_reporters={"Welfare": "welfare"}
+                                                                )  # agent_reporters={"Welfare": "welfare"}
         self.log_data()
 
     def log_data(self) -> None:
@@ -73,10 +66,6 @@ class GeoModel(mesa.Model):
         """
         self.step_nr += 1
         self.schedule.step()
-
-        # do global actions here if any exist e.g., nuke random country idk
-        # ...
-
         self.trading_cycle()
         self.log_data()
 
@@ -84,11 +73,6 @@ class GeoModel(mesa.Model):
         # for agent in self.agents():
         #     agent.perc_energy_met = 0
         #     agent.pred_dirty -= agent.nr_dirty*2394 # !! placeholder value here !! #
-
-        # self.do_trade()
-
-        # do trading as until there are either no buying countries anymore or
-        # they do not have any neighbors that sell anymore
 
     # def trading_cycle(self) -> None:
     #     """Do full trading cycle.
@@ -192,11 +176,11 @@ class GeoModel(mesa.Model):
         """Do full trading cycle.
         1. Find buying countries
         2. Find selling countries
-        3. For each buying country: trade with neighbours until
-            a. own energy need fulfilled
-            b. neighbors are not selling energy anymore
-            c. MRS ratio leads to no trade
-
+        3. For each country:
+            a. Pick a random neighbour to trade with
+            b. trade according to MRS ratio between countries
+            c. trade maximally 0.1 of a resource and leave 0.3 as a buffer
+                - no trade is made if the country has <0.3 of the resource of interest
         """
         all_countries = self.agents
         rng = np.random.default_rng()
@@ -223,101 +207,85 @@ class GeoModel(mesa.Model):
                     print(cur_neigh.wealth["money"])
                 price: float = gmean([cur_country.mrs, cur_neigh.mrs], dtype=float, nan_policy="raise")
 
-
-
-
-
-
             # do trades
-            if cur_country.mrs < cur_neigh.mrs:
+            if  cur_neigh.mrs > cur_country.mrs:
 
-                    # if price > 1:
-                    #     energy: float = price
-                    #     money: float = 1
-                    # else:
-                    #     energy: float = 1 / price
-                    #     money: float = 1
+                energy_left = cur_neigh.wealth['energy'] - 0.3
+                money_left = cur_country.wealth['money'] - 0.3
+                # where 0.1 is the max amount allowed to be traded; 0.3 the min level allowed money
 
-                    energy_left = cur_neigh.wealth['energy'] - 0.3
-                    money_left = cur_country.wealth['money'] - 0.3
-                    # where 0.1 is the max amount allowed to be traded; 0.3 the min level allowed money
+                if money_left < 0 or energy_left < 0:
+                    continue
 
-                    if money_left < 0 or energy_left <0:
-                        continue
+                if 0.1 > energy_left and energy_left < money_left:
+                    energy = energy_left
+                    money = price * energy_left
+                elif 0.1 > money_left and money_left < energy_left:
+                    energy = price * money_left
+                    money = 1 * money_left
 
+                else:  # both over 0.1:
+                    if price > 1:
+                        energy = 0.1
+                        money = 0.1 / price
+                    else:
+                        energy = 0.1 * price
+                        money = 0.1
 
-                    if 0.1 > energy_left and energy_left < money_left:
-                        energy = energy_left
-                        money = price*energy_left
-                    elif 0.1 > money_left and money_left < energy_left:
-                        energy = price * money_left
-                        money = 1 * money_left
-
-                    else: # both over 0.1:
-                        if price > 1:
-                            energy = 0.1
-                            money = 0.1/price
-                        else:
-                            energy = 0.1*price
-                            money = 0.1
-
-                    print("trade")
-
-                    cur_country.wealth['energy'] += energy
-                    cur_country.wealth['money'] -= money
-                    cur_neigh.wealth['money'] += money
-                    cur_neigh.wealth['energy'] -= energy
-                    cur_country.calculate_welfare()
-                    cur_country.calculate_mrs()
-                    cur_neigh.calculate_welfare()
-                    cur_neigh.calculate_mrs()
-                    # cur_country.model.price_record[cur_county.model.step_num].append(price)
-                    # cur_country.make_link(cur_neigh)
+                cur_country.wealth['energy'] += energy
+                cur_country.wealth['money'] -= money
+                cur_neigh.wealth['money'] += money
+                cur_neigh.wealth['energy'] -= energy
+                cur_country.calculate_welfare()
+                cur_country.calculate_mrs()
+                cur_neigh.calculate_welfare()
+                cur_neigh.calculate_mrs()
+                # cur_country.model.price_record[cur_county.model.step_num].append(price)
+                # cur_country.make_link(cur_neigh)
             else:
 
-                    energy_left = cur_country.wealth['energy'] - 0.3
-                    money_left = cur_neigh.wealth['money'] - 0.3
+                energy_left = cur_country.wealth['energy'] - 0.3
+                money_left = cur_neigh.wealth['money'] - 0.3
 
-                    # no trade if no buffer
-                    if money_left < 0 or energy_left < 0:
-                        continue
-                    # where 0.1 is the max amount allowed to be traded; 0.3 the min level allowed money
+                # no trade if no buffer
+                if money_left < 0 or energy_left < 0:
+                    continue
+                # where 0.1 is the max amount allowed to be traded; 0.3 the min level allowed money
 
-                    if 0.1 > energy_left and energy_left < money_left:
-                        energy = energy_left
-                        money = price*energy_left
-                    elif 0.1 > money_left and money_left < energy_left:
-                        energy = price * money_left
-                        money = 1 * money_left
+                if 0.1 > energy_left and energy_left < money_left:
+                    energy = energy_left
+                    money = price * energy_left
+                elif 0.1 > money_left and money_left < energy_left:
+                    energy = price * money_left
+                    money = 1 * money_left
 
-                    else: # both over 0.1:
-                        if price > 1:
-                            energy = 0.1
-                            money = 0.1/price
-                        else:
-                            energy = 0.1*price
-                            money = 0.1
+                else:  # both over 0.1:
+                    if price > 1:
+                        energy = 0.1
+                        money = 0.1 / price
+                    else:
+                        energy = 0.1 * price
+                        money = 0.1
 
-                    print("trade")
-                    cur_country.wealth['energy'] -= energy
-                    cur_country.wealth['money'] += money
-                    cur_neigh.wealth['money'] -= money
-                    cur_neigh.wealth['energy'] += energy
-                    cur_country.calculate_welfare()
-                    cur_country.calculate_mrs()
-                    cur_neigh.calculate_welfare()
-                    cur_neigh.calculate_mrs()
-                    # cur_country.model.price_record[cur_country.model.step_num].append(price)
-                    # cur_country.make_link(cur_neigh)
+                cur_country.wealth['energy'] -= energy
+                cur_country.wealth['money'] += money
+                cur_neigh.wealth['money'] -= money
+                cur_neigh.wealth['energy'] += energy
+                cur_country.calculate_welfare()
+                cur_country.calculate_mrs()
+                cur_neigh.calculate_welfare()
+                cur_neigh.calculate_mrs()
+                # cur_country.model.price_record[cur_country.model.step_num].append(price)
+                # cur_country.make_link(cur_neigh)
 
     @staticmethod
-    @numba.jit(fastmath=True,nopython=True)
+    @numba.jit(fastmath=True, nopython=True)
     def welfare_single(w1, m1, mt):
         """Welfare function of only one commodity for the What-if analysis."""
         return np.power(w1, np.divide(m1, mt))
 
     @staticmethod
-    @numba.jit(fastmath=True,nopython=True)
+    @numba.jit(fastmath=True, nopython=True)
     def mrs(w1, m1, w2, m2):
         """Calculate Marginal Rate of Substitution for specific parameters. Needed for what-if analysis."""
         return np.divide(np.multiply(w1, m2), np.multiply(w2, m1))
@@ -325,8 +293,7 @@ class GeoModel(mesa.Model):
 
 if __name__ == "__main__":
     new = GeoModel()
-    new.run_model(100)
+    new.run_model(20)
     data = new.data_collector.get_model_vars_dataframe()
-    print(data)
     data.plot()
     plt.show()
