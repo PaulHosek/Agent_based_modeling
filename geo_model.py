@@ -34,11 +34,14 @@ class GeoModel(mesa.Model):
             metabs = rng.uniform(0.01, 0.1, size=2)
             agent.metabolism = {"energy": metabs[0], "money": metabs[1]}
             agent.wealth = {"energy": nums[2], "money": nums[3]}
-            agent.influx_money = 0.1
-            agent.pred_clean = 0.1
-            agent.pred_dirty = 0.1
-            agent.output_single_clean = 0.1
-            agent.output_single_dirty = 0.1
+            agent.influx_money = 0.2
+            agent.pred_clean = 0.2
+            agent.pred_dirty = 0.9
+            agent.output_single_clean = 0.8
+            agent.output_single_dirty = 0.8
+            agent.cost_clean = 0.01
+            agent.cost_dirty = 0.01
+
 
             agent.calculate_welfare()
             agent.calculate_mrs()
