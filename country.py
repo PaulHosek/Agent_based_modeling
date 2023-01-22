@@ -25,7 +25,6 @@ class Country(mg.GeoAgent):
         self.produced_energy: float = 0.0
         self.influx_money: float = 0.0
 
-
         # for later
         self.pred_dirty: float = 0.0
         self.pred_clean: float = 0.0
@@ -33,10 +32,13 @@ class Country(mg.GeoAgent):
         self.nr_clean: int = 0
 
         # attributes set by model
+        self.last_trade_success: bool = False
+        self.last_trade_price_energy: float = 0.0
+        # base output of single plants as determined by the initialisation
+        self.output_single_dirty: float = 0.0
+        self.output_single_clean: float = 0.0
         self.cost_dirty: float = 0.0
         self.cost_clean: float = 0.0
-        self.output_dirty: float = 0.0
-        self.output_clean: float = 0.0
 
         self.load_country(id)
 
@@ -55,9 +57,9 @@ class Country(mg.GeoAgent):
         Do agents actions in each step here.
         :return:
         """
-        # self.collect()
-        # self.build()
-        self.eat()
+        self.collect()
+        self.invest()
+        # self.eat()
         self.consume()  # consume energy
         self.calculate_welfare()
         self.calculate_mrs()
@@ -71,68 +73,167 @@ class Country(mg.GeoAgent):
 
         self.wealth["money"] += self.influx_money
 
-    def build(self) -> None:
+    def invest(self) -> None:
         """
+        Decide if we should build a power plant or rely on trading.
         1. Decide if can afford power plant
         2. Do what-if analysis on welfare increase with power plant for both power plants.
         3. Choose power plant that maximises welfare.
         4. Build power plant
         5. Compute new wealth for energy and money.
         """
-        if self.cost_clean < self.wealth["money"] or self.cost_dirty < self.wealth["money"]:
-            return None
-        dirty_welfare = self.would_be_welfare("dirty")
-        clean_welfare = self.would_be_welfare("clean")
+        # if cant afford any plant
+        if self.cost_clean < self.wealth["money"] and self.cost_dirty < self.wealth["money"]:
+            return
 
-        if dirty_welfare > self.welfare and dirty_welfare > self.welfare:
-            # choose the one that maximises welfare
-            pass
-        elif dirty_welfare > self.welfare:
-            # build dirty
-            pass
-        elif clean_welfare > self.welfare:
-            # build clean
-            pass
+        build_d_welfare = self.would_be_welfare("dirty", 'build')
+        build_c_welfare = self.would_be_welfare("clean", 'build')
+        trade_d_welfare = self.would_be_welfare("dirty", 'trade')
+        trade_c_welfare = self.would_be_welfare("clean", 'trade')
+
+
+        options = [
+            (build_d_welfare, self.cost_dirty, "dirty", "build"),
+            (build_c_welfare, self.cost_clean, "clean", "build"),
+            (trade_d_welfare, 0, "dirty", "trade"),
+            (trade_c_welfare, 0, "clean", "trade")
+        ]
+        print(options)
+
+
+        # sort options by welfare
+        options.sort(reverse=True, key=lambda x: x[0])
+        # choose first option we can afford
+        best = next((x for x in options if x[1] < self.wealth["money"]-0.3),
+                    (trade_c_welfare, 0, "clean", "trade"))
+
+        if best[3] == "build":
+            self.build_plant(best[2])
+
+        # if last trade was not successful, but the best option was trade. Try to build the best plant we can.
+        elif best[3] == "trade" and not self.last_trade_success:
+            # if there are any plants we can afford, build the one with the highest welfare
+            best_build = sorted((x for x in options
+                                 if x[3] == "build" and x[1] < self.wealth["money"]-0.3),
+                                reverse=True, key=lambda x: x[0])
+            if best_build:
+                self.build_plant(best_build[0][2])
         else:
-            return None
+            pass
 
-    def would_be_welfare(self, plant_type: str):
+        return
+
+
+
+
+        # TODO rn we are pretending we can trade for >0.1 energy in the would-be-welfare function,
+        #  not sure if we should leave this. But we need to compare the options somehow
+
+        # if dirty_welfare > self.welfare and dirty_welfare > self.welfare:
+        #     # choose the one that maximises welfare
+        #     if dirty_welfare > clean_welfare:
+        #         pass
+        #     else:
+        #         pass
+        # elif dirty_welfare > self.welfare:
+        #     # build dirty
+        #     pass
+        # elif clean_welfare > self.welfare:
+        #     # build clean
+        #     pass
+        # else:
+        #     return None
+
+        # ASSUME no plant -> should probs be not in this function
+        # What if i buy the energy the plant produces in the market
+
+        # TODO test if can afford even to buy in market
+        # TODO test if can afford any plant
+        # return option that maximises welfare
+
+    def would_be_welfare(self, plant_type: str, trade_build: str) -> float:
         """
         Calculate welfare that would be achieved by building a specific plant and trade.
+        Assume that we trade for maximum trading volume of 0.1 Energy at the market price of last time.
 
-        :param plant_type: either "dirty" or "clean"
+        :param plant_type: The type of plant to build/ assume energy output from. Is either "dirty" or "clean"
+        :param trade_build: If we will trade for the energy of the plant or build it. Is either "trade" or "buy"
         :return:
         """
+        # TODO make sure that if there was no plant built in the last time step,
+        #  that we don't take the trading price into account
 
+        # TODO if last trade was successful, take last trading price into account
+        if plant_type == "dirty":
+            cost_plant = self.cost_dirty
+            add_plant_energy = self.pred_dirty * self.output_single_dirty
+        elif plant_type == "clean":
+            cost_plant = self.cost_clean
+            add_plant_energy = self.pred_clean * self.output_single_clean
+        else:
+            raise ValueError(f"""Variable plant type is {plant_type} but can only take values "dirty" or "clean".""")
 
+        if trade_build == "build":
+            m1 = self.metabolism["energy"] - self.produced_energy - add_plant_energy
+            m2 = self.metabolism["money"] - self.influx_money
+            mt = m1 + m2
+            return self.wealth["enery"] ** (m1 / mt) * (self.wealth["money"] - self.cost_dirty) ** m2 / mt
 
+        elif trade_build == "trade":
+            expected_market_cost = self.last_trade_price_energy * 0.1 #add_plant_energy
+            m1 = self.metabolism["energy"] - self.produced_energy
+            m2 = self.metabolism["money"] - self.influx_money
+            mt = m1 + m2
+            return (self.wealth["energy"] + 0.1) ** (m1 / mt) \
+                   * (self.wealth["money"] - expected_market_cost) ** (m2 / mt)
 
+        else:
+            raise ValueError(f"""Variable trade_build is {trade_build} but can only take values "trade" or "build".""")
 
-    # def calc_effective_welfare(self) -> None:
+    # def would_be_welfare_trade(self, plant_type) -> float:
     #     """
-    #     Calculate welfare. Include both influx of
-    #     money and produced energy from plants in equation.
+    #     What would be the welfare if we were to trade for the same amount of energy a plant produces.
+    #     Need to test for both plants, bc we don't know how money and energy are being valued right now.
+    #     :param plant_type: "dirty" or "clean". Used to determine the amount of energy to trade for.
+    #     :return:
     #     """
-    #     m_energy = self.metabolism["energy"] - self.produced_energy
-    #     m_money = self.metabolism["money"] - self.influx_money
-    #     mt = np.add(m_energy, m_money)
-    #     # print(self.wealth['energy'], self.metabolism["energy"], mt)
+    #     if plant_type == "dirty":
+    #         add_plant_energy = self.pred_dirty * self.output_single_dirty
+    #     elif plant_type == "clean":
+    #         add_plant_energy = self.pred_clean * self.output_single_clean
+    #     else:
+    #         raise ValueError(f"""Variable plant type is {plant_type} but can only take values "dirty" or "clean".""")
     #
-    #     w_energy = np.power(self.wealth['energy'], np.divide(m_energy, mt))
-    #     w_money = np.power(self.wealth['money'], np.divide(m_money, mt))
-    #
-    #     for i in [w_money, w_energy]:
-    #         if isinstance(i, complex):
-    #             i = 0
-    #
-    #     self.welfare = np.multiply(w_money, w_energy)
+    #     expected_market_cost = self.last_trade_price_energy * add_plant_energy
+    #     m1 = self.metabolism["energy"] - self.produced_energy
+    #     m2 = self.metabolism["money"] - self.influx_money
+    #     mt = m1 + m2
+    #     return (self.wealth["energy"] + add_plant_energy) ** (m1 / mt) \
+    #            * (self.wealth["money"] - expected_market_cost) ** (m2 / mt)
 
+    def calc_effective_welfare(self) -> None:
+        """
+        Calculate welfare. Include both influx of
+        money and produced energy from plants in equation.
+        """
+        m_energy = self.metabolism["energy"] - self.produced_energy
+        m_money = self.metabolism["money"] - self.influx_money
+        mt = np.add(m_energy, m_money)
+        # print(self.wealth['energy'], self.metabolism["energy"], mt)
 
+        w_energy = np.power(self.wealth['energy'], np.divide(m_energy, mt))
+        w_money = np.power(self.wealth['money'], np.divide(m_money, mt))
 
-    def eat(self) -> None:
-        """Generate energy and money."""
-        self.wealth['energy'] += self.metabolism["energy"]
-        self.wealth['money'] += self.metabolism["money"]
+        for i in [w_money, w_energy]:
+            if isinstance(i, complex):
+                i = 0
+
+        self.welfare = np.multiply(w_money, w_energy)
+
+    # def eat(self) -> None:
+    #     """Generate energy and money."""
+    #     self.wealth['energy'] += self.metabolism["energy"]
+    #     self.wealth['money'] += self.metabolism["money"]
 
     def consume(self) -> None:
         """Use up energy and money"""
@@ -160,16 +261,16 @@ class Country(mg.GeoAgent):
 
         self.welfare = np.multiply(w_money, w_energy)
 
-
     # @numba.jit(fastmath=True, nopython=True)
-    def calculate_mrs(self) -> None:
+    def calculate_mrs(self) -> None:  # TODO adjust to new wealth function
         """Calculate Marginal Rate of Substitution (MRS)."""
         self.mrs = np.divide(np.multiply(self.wealth["energy"], self.metabolism["money"]),
                              np.multiply(self.wealth["money"], self.metabolism["energy"]))  # IS THIS CORRECT?
 
-    def build_plant(self, type_plant="dirty"):
+    def build_plant(self, type_plant: str):
         """
         Build some plant,
+        :param: type_plant: The plant to build. Either "dirty" or "clean".
         :return:
         """
         if type_plant == "dirty":

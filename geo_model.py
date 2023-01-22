@@ -34,6 +34,12 @@ class GeoModel(mesa.Model):
             metabs = rng.uniform(0.01, 0.1, size=2)
             agent.metabolism = {"energy": metabs[0], "money": metabs[1]}
             agent.wealth = {"energy": nums[2], "money": nums[3]}
+            agent.influx_money = 0.1
+            agent.pred_clean = 0.1
+            agent.pred_dirty = 0.1
+            agent.output_single_clean = 0.1
+            agent.output_single_dirty = 0.1
+
             agent.calculate_welfare()
             agent.calculate_mrs()
 
@@ -188,35 +194,38 @@ class GeoModel(mesa.Model):
         for cur_country in all_countries:
 
             all_neighs: list = self.grid.get_neighbors(cur_country)
+
+            # if country is an island, don't trade
             if not len(all_neighs):
+                cur_country.last_trade_success = False
                 continue
 
             cur_neigh = np.random.choice(all_neighs)
-            # loop over neighbours until there is no trading anymore
 
+            # determine price per energy if there will be a trade
             if cur_country.mrs == cur_neigh.mrs:
+                cur_country.last_trade_success = False
+                cur_neigh.last_trade_success = False
                 continue
-
-            # determine price
             else:
-                # print('mrs', cur_country.mrs, cur_neigh.mrs)
-                if cur_country.mrs < 0 or cur_neigh.mrs < 0:
-                    print(cur_country.wealth["energy"])
-                    print(cur_country.wealth["money"])
-                    print(cur_neigh.wealth["energy"])
-                    print(cur_neigh.wealth["money"])
-                price: float = gmean([cur_country.mrs, cur_neigh.mrs], dtype=float, nan_policy="raise")
+                price: float = float(gmean([cur_country.mrs, cur_neigh.mrs], dtype=float, nan_policy="raise"))
 
             # do trades
-            if  cur_neigh.mrs > cur_country.mrs:
-
+            if cur_neigh.mrs > cur_country.mrs:
+                # calculate how much wealth exceeds the buffer
+                # no trade if no buffer (0.3 energy)
                 energy_left = cur_neigh.wealth['energy'] - 0.3
                 money_left = cur_country.wealth['money'] - 0.3
-                # where 0.1 is the max amount allowed to be traded; 0.3 the min level allowed money
-
                 if money_left < 0 or energy_left < 0:
+                    cur_country.last_trade_success = False
+                    cur_neigh.last_trade_success = False
                     continue
 
+                # determine how much is being traded
+                # 0.1 is the max energy allowed to be traded
+                # 0.3 the min level money and energy allowed
+
+                # if have less than 0.1 energy/money more than the buffer, trade everything up to buffer
                 if 0.1 > energy_left and energy_left < money_left:
                     energy = energy_left
                     money = price * energy_left
@@ -224,7 +233,8 @@ class GeoModel(mesa.Model):
                     energy = price * money_left
                     money = 1 * money_left
 
-                else:  # both over 0.1:
+                # else trade 0.1 energy
+                else:
                     if price > 1:
                         energy = 0.1
                         money = 0.1 / price
@@ -232,6 +242,7 @@ class GeoModel(mesa.Model):
                         energy = 0.1 * price
                         money = 0.1
 
+                # do transaction
                 cur_country.wealth['energy'] += energy
                 cur_country.wealth['money'] -= money
                 cur_neigh.wealth['money'] += money
@@ -240,18 +251,22 @@ class GeoModel(mesa.Model):
                 cur_country.calculate_mrs()
                 cur_neigh.calculate_welfare()
                 cur_neigh.calculate_mrs()
-                # cur_country.model.price_record[cur_county.model.step_num].append(price)
-                # cur_country.make_link(cur_neigh)
-            else:
 
+            else:
+                # calculate how much wealth exceeds the buffer
+                # no trade if no buffer (0.3 energy)
                 energy_left = cur_country.wealth['energy'] - 0.3
                 money_left = cur_neigh.wealth['money'] - 0.3
-
-                # no trade if no buffer
                 if money_left < 0 or energy_left < 0:
+                    cur_country.last_trade_success = False
+                    cur_neigh.last_trade_success = False
                     continue
-                # where 0.1 is the max amount allowed to be traded; 0.3 the min level allowed money
 
+                # determine how much is being traded
+                # 0.1 is the max energy allowed to be traded
+                # 0.3 the min level money and energy allowed
+
+                # if have less than 0.1 energy/money more than the buffer, trade everything up to buffer
                 if 0.1 > energy_left and energy_left < money_left:
                     energy = energy_left
                     money = price * energy_left
@@ -259,14 +274,15 @@ class GeoModel(mesa.Model):
                     energy = price * money_left
                     money = 1 * money_left
 
-                else:  # both over 0.1:
+                # else trade 0.1 energy
+                else:
                     if price > 1:
                         energy = 0.1
                         money = 0.1 / price
                     else:
                         energy = 0.1 * price
                         money = 0.1
-
+                # do transaction
                 cur_country.wealth['energy'] -= energy
                 cur_country.wealth['money'] += money
                 cur_neigh.wealth['money'] -= money
@@ -275,8 +291,15 @@ class GeoModel(mesa.Model):
                 cur_country.calculate_mrs()
                 cur_neigh.calculate_welfare()
                 cur_neigh.calculate_mrs()
-                # cur_country.model.price_record[cur_country.model.step_num].append(price)
-                # cur_country.make_link(cur_neigh)
+
+            # pass information about trade to decision function in the next step
+            cur_country.last_trade_price_energy = price
+            cur_country.last_trade_success = True
+            cur_neigh.last_trade_price_energy = price
+            cur_neigh.last_trade_success = True
+
+            # cur_country.model.price_record[cur_country.model.step_num].append(price)
+            # cur_country.make_link(cur_neigh)
 
     @staticmethod
     @numba.jit(fastmath=True, nopython=True)
@@ -293,7 +316,7 @@ class GeoModel(mesa.Model):
 
 if __name__ == "__main__":
     new = GeoModel()
-    new.run_model(20)
+    new.run_model(10)
     data = new.data_collector.get_model_vars_dataframe()
     data.plot()
     plt.show()
