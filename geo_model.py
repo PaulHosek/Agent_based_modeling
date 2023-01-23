@@ -46,7 +46,7 @@ class GeoModel(mesa.Model):
             agent.calculate_mrs()
 
         self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Welfare": 'average_welfare'},
-                                                                )  # agent_reporters={"Welfare": "welfare"}
+                                                                 agent_reporters={"Welfare": "welfare"})
         self.log_data()
 
     def load_country(self, unique_id):
@@ -327,5 +327,12 @@ if __name__ == "__main__":
     new = GeoModel()
     new.run_model(10)
     data = new.data_collector.get_model_vars_dataframe()
+    a_data = new.data_collector.get_agent_vars_dataframe()
     data.plot()
+    df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
+    plt.semilogy(df_by_country)
+    plt.show()
+    plt.figure()
+    plt.plot(a_data)
+    print(a_data)
     plt.show()
