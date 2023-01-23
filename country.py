@@ -45,13 +45,6 @@ class Country(mg.GeoAgent):
     def __repr__(self):
         return f"Country: {self.unique_id}"
 
-    def load_country(self, unique_id):
-        """
-        Initialise the country and fill the attributes from csv.
-        :return: None
-        """
-        pass
-
     def step(self) -> None:
         """
         Do agents actions in each step here.

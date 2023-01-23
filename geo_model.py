@@ -28,7 +28,7 @@ class GeoModel(mesa.Model):
 
         # set agents initial state
         rng = np.random.default_rng(1)
-        for agent in self.agents:
+        for agent in self.agents: # TODO use load country instead
             self.schedule.add(agent)
             nums = rng.uniform(0.01, 1, size=4)
             metabs = rng.uniform(0.01, 0.1, size=2)
@@ -42,13 +42,19 @@ class GeoModel(mesa.Model):
             agent.cost_clean = 0.01
             agent.cost_dirty = 0.01
 
-
             agent.calculate_welfare()
             agent.calculate_mrs()
 
         self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Welfare": 'average_welfare'},
                                                                 )  # agent_reporters={"Welfare": "welfare"}
         self.log_data()
+
+    def load_country(self, unique_id):
+        """
+        Initialise the country and fill the attributes from csv.
+        :return: None
+        """
+        pass
 
     def log_data(self) -> None:
         """
