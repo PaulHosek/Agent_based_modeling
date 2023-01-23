@@ -40,7 +40,6 @@ class Country(mg.GeoAgent):
         self.cost_dirty: float = 0.0
         self.cost_clean: float = 0.0
 
-        self.load_country(id)
 
     def __repr__(self):
         return f"Country: {self.unique_id}"
@@ -56,6 +55,11 @@ class Country(mg.GeoAgent):
         self.consume()  # consume energy
         self.calculate_welfare() # TODO update this to the new welfare function
         self.calculate_mrs()
+        self.reduce_pred()
+
+    def reduce_pred(self):
+        """Reduce predisposition of ditry power based on how many power plants consume it."""
+        self.pred_dirty -= self.nr_dirty*0.005
 
     def collect(self) -> None:
         """Collect energy and money from power plants and gdp influx.
