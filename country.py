@@ -102,6 +102,7 @@ class Country(mg.GeoAgent):
             (self.welfare, 0, "nothing", "nothing")
         ]
         print(options)
+        # print(self.nr_dirty,self.nr_clean)
 
 
         # sort options by welfare
