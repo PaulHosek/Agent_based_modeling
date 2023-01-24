@@ -325,7 +325,12 @@ class GeoModel(mesa.Model):
 
 if __name__ == "__main__":
     new = GeoModel()
-    new.run_model(10)
+    now = time.time()
+    new.run_model(1000)
+    print(now-time.time())
     data = new.data_collector.get_model_vars_dataframe()
-    data.plot()
+    a_data = new.data_collector.get_agent_vars_dataframe()
+    df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
+    plt.figure()
+    plt.semilogy(df_by_country)
     plt.show()
