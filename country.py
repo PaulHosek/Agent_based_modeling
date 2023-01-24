@@ -121,77 +121,71 @@ class Country(mg.GeoAgent):
 
     def would_be_welfare(self, action: str) -> float:
         if action == "dirty":
-            add_plant_energy = self.pred_dirty * self.output_single_dirty
+            add_energy = self.pred_dirty * self.output_single_dirty
             expected_market_cost = self.cost_dirty
         elif action == "clean":
-            add_plant_energy = self.pred_clean * self.output_single_clean
+            add_energy = self.pred_clean * self.output_single_clean
             expected_market_cost = self.cost_clean
-        elif action == "trade_e" or action == "trade_m":
-            add_plant_energy = 0
-            expected_market_cost = 0
+        elif action == "trade_e":
+            add_energy = 0.1
+            expected_market_cost = 0.1 * self.last_trade_price_energy
+        elif action == "trade_m":
+            add_energy = 0.1 / self.last_trade_price_energy
+            expected_market_cost = 0.1
         else:
             raise ValueError(
                 f"Variable action is {action} but can only take values 'dirty', 'clean', 'trade_e' or 'trade_m'.")
 
-        if action == "trade_e":
-            expected_market_cost = 0.1 * self.last_trade_price_energy
-            add_plant_energy = 0.1
-        elif action == "trade_m":
-            expected_market_energy = 0.1 / self.last_trade_price_energy
-            add_plant_energy = -expected_market_energy
-
         mt = np.add(self.metabolism["energy"], self.metabolism["money"])
-        return np.power(self.wealth["energy"] + self.produced_energy + add_plant_energy,
-                           self.metabolism["energy"] / mt) * np.power(self.wealth["money"] - expected_market_cost,
-                                                                      self.metabolism["money"] / mt)
-
-    def would_be_welfare(self, action: str) -> float:
-        """
-        Calculate welfare that would be achieved by building a specific plant and trade.
-        Assume that we trade for maximum trading volume of 0.1 Energy at the market price of last time.
-
-        Note that the welfare functions are not adding self.influx_money, because this has happened already in this step.
-        This means, the wealth["money"] was already updated
-
-        :param action: What to do: Build a power plant with "dirty", "clean" or trade with "trade_e" or "trade_m".
-        :return:
-        """
-
-        if action == "dirty":
-            add_plant_energy = self.pred_dirty * self.output_single_dirty
-        elif action == "clean":
-            add_plant_energy = self.pred_clean * self.output_single_clean
-        elif action == "trade_e" or action == "trade_m":
-            pass
-        else:
-            raise ValueError(f"""Variable action is {action}
-             but can only take values "dirty", "clean", "trade_e" or "trade_m".""")
-
-        # build a plant
-        if action == "dirty" or action == "clean":
-            mt = np.add(self.metabolism["energy"], self.metabolism["money"])
-            return (self.wealth["energy"] + self.produced_energy + add_plant_energy)\
-                   ** (self.metabolism["energy"] / mt) \
-                   * (self.wealth["money"] - self.cost_dirty)\
-                   ** (self.metabolism["money"] / mt)  # no influx money, see Docstring
-
-        # buy energy
-        elif action == "trade_e":
-            expected_market_cost = 0.1 * self.last_trade_price_energy  # * add_plant_energy
-            mt = np.add(self.metabolism["energy"], self.metabolism["money"])
-            return (self.wealth["energy"] + self.produced_energy + 0.1)\
-                   ** (self.metabolism["energy"] / mt) \
-                   * (self.wealth["money"] - expected_market_cost)\
-                   ** (self.metabolism["money"] / mt)  # no influx money, see Docstring
-
-        # sell energy
-        elif action == "trade_m":
-            expected_market_energy = 0.1 / self.last_trade_price_energy  # * add_plant_energy
-            mt = np.add(self.metabolism["energy"], self.metabolism["money"])
-            return (self.wealth["energy"] + self.produced_energy - expected_market_energy)\
-                   ** (self.metabolism["energy"] / mt) \
-                   * (self.wealth["money"] + self.influx_money + 0.1)\
-                   ** (self.metabolism["money"] / mt)
+        return np.power(self.wealth["energy"] + self.produced_energy + add_energy, self.metabolism["energy"] / mt)\
+               * np.power(self.wealth["money"] - expected_market_cost, self.metabolism["money"] / mt)
+    # def would_be_welfare(self, action: str) -> float:
+    #     """
+    #     Calculate welfare that would be achieved by building a specific plant and trade.
+    #     Assume that we trade for maximum trading volume of 0.1 Energy at the market price of last time.
+    #
+    #     Note that the welfare functions are not adding self.influx_money, because this has happened already in this step.
+    #     This means, the wealth["money"] was already updated
+    #
+    #     :param action: What to do: Build a power plant with "dirty", "clean" or trade with "trade_e" or "trade_m".
+    #     :return:
+    #     """
+    #
+    #     if action == "dirty":
+    #         add_plant_energy = self.pred_dirty * self.output_single_dirty
+    #     elif action == "clean":
+    #         add_plant_energy = self.pred_clean * self.output_single_clean
+    #     elif action == "trade_e" or action == "trade_m":
+    #         pass
+    #     else:
+    #         raise ValueError(f"""Variable action is {action}
+    #          but can only take values "dirty", "clean", "trade_e" or "trade_m".""")
+    #
+    #     # build a plant
+    #     if action == "dirty" or action == "clean":
+    #         mt = np.add(self.metabolism["energy"], self.metabolism["money"])
+    #         return (self.wealth["energy"] + self.produced_energy + add_plant_energy)\
+    #                ** (self.metabolism["energy"] / mt) \
+    #                * (self.wealth["money"] - self.cost_dirty)\
+    #                ** (self.metabolism["money"] / mt)  # no influx money, see Docstring
+    #
+    #     # buy energy
+    #     elif action == "trade_e":
+    #         expected_market_cost = 0.1 * self.last_trade_price_energy  # * add_plant_energy
+    #         mt = np.add(self.metabolism["energy"], self.metabolism["money"])
+    #         return (self.wealth["energy"] + self.produced_energy + 0.1)\
+    #                ** (self.metabolism["energy"] / mt) \
+    #                * (self.wealth["money"] - expected_market_cost)\
+    #                ** (self.metabolism["money"] / mt)  # no influx money, see Docstring
+    #
+    #     # sell energy
+    #     elif action == "trade_m":
+    #         expected_market_energy = 0.1 / self.last_trade_price_energy  # * add_plant_energy
+    #         mt = np.add(self.metabolism["energy"], self.metabolism["money"])
+    #         return (self.wealth["energy"] + self.produced_energy - expected_market_energy)\
+    #                ** (self.metabolism["energy"] / mt) \
+    #                * (self.wealth["money"] + self.influx_money + 0.1)\
+    #                ** (self.metabolism["money"] / mt)
 
     def consume(self) -> None:
         """Use up energy and money"""
@@ -225,7 +219,6 @@ class Country(mg.GeoAgent):
 
         self.welfare = np.multiply(w_money, w_energy)
 
-    # @numba.jit(fastmath=True, nopython=True)
     def calculate_mrs(self) -> None:  # TODO adjust to new wealth function
         """Calculate Marginal Rate of Substitution (MRS)."""
         self.mrs = np.divide(np.multiply(self.wealth["energy"], self.metabolism["money"]),
@@ -246,31 +239,6 @@ class Country(mg.GeoAgent):
         else:
             raise ValueError(f"""{type_plant} is not a valid plant. Use the tag "dirty" or "clean".""")
 
-    ##########################################################################
-    #
-    #          Functions for later
-    #
-    #########################################################################
-
-    # def decide_build(self) -> int:
-    #     """
-    #     Decide if build plant and which one.
-    #     0 = build no plant
-    #     1 = build dirty
-    #     2 = build clean
-    #     :return: 0,1,2
-    #     """
-    #     # calculate cost of only trading, based on last turn's average trade cost
-    #     # calculate cost of buying a green plant and trading for the rest
-    #     # calculate cost of buying a dirty plant and trading for the rest
-    #     pass
-
-    # def evaluate_energy(self):
-    #     """
-    #     Calculate the current energy percentage met based on nr plants and their output.
-    #     :return:
-    #     """
-    #     pass
     def reduce_pred(self):
         """
         Reduce predisposition of ditry power based on how many power plants consume it.

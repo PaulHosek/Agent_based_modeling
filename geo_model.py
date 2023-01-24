@@ -46,7 +46,7 @@ class GeoModel(mesa.Model):
             agent.calculate_mrs()
 
         self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Welfare": 'average_welfare'},
-                                                                )  # agent_reporters={"Welfare": "welfare"}
+                                                                agent_reporters={"Welfare": "welfare"})
         self.log_data()
 
     def load_country(self, unique_id):
