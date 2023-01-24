@@ -1,5 +1,7 @@
 import mesa
 import mesa_geo as mg
+import pandas as pd
+
 import country
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,6 +27,9 @@ class GeoModel(mesa.Model):
         self.agents = ac.from_file("europe_countries.geojson", unique_id="NAME")
         # TODO remove countries not in EU
         self.grid.add_agents(self.agents)
+
+        df = pd.read_csv("dataframe_energy.csv", sep=",")
+        print(df)
 
         # set agents initial state
         rng = np.random.default_rng(1)
@@ -314,10 +319,10 @@ if __name__ == "__main__":
     new = GeoModel()
     now = time.time()
     new.run_model(1000)
-    print(time.time()-now)
+    # print(time.time()-now)
     data = new.data_collector.get_model_vars_dataframe()
-    a_data = new.data_collector.get_agent_vars_dataframe()
-    df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
-    plt.figure()
-    plt.semilogy(df_by_country)
-    plt.show()
+    # a_data = new.data_collector.get_agent_vars_dataframe()
+    # df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
+    # plt.figure()
+    # plt.semilogy(df_by_country)
+    # plt.show()
