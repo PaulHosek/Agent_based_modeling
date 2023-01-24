@@ -28,7 +28,7 @@ class GeoModel(mesa.Model):
         # TODO remove countries not in EU
         self.grid.add_agents(self.agents)
 
-        df = pd.read_csv("dataframe_energy.csv", sep=",")
+        df = pd.read_csv("Normalised_data.csv", sep=",")
         print(df)
 
         # set agents initial state
