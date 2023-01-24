@@ -50,9 +50,8 @@ class Country(mg.GeoAgent):
         """
         self.collect()
         self.invest()
-        # self.eat()
-        self.consume()  # consume energy
-        self.calculate_welfare()  # TODO update this to the new welfare function
+        self.consume()
+        self.calculate_welfare()
         self.calculate_mrs()
         self.reduce_pred()
 
@@ -80,9 +79,6 @@ class Country(mg.GeoAgent):
         build_c_welfare = self.would_be_welfare("clean")
         trade_d_welfare = self.would_be_welfare("trade_e")
         trade_c_welfare = self.would_be_welfare("trade_m")
-        # TODO compare trade for energy or trade for money
-        # TODO also include option of doing nothing
-        # TODO clean this up
 
         options = [
             (build_d_welfare, self.cost_dirty, "dirty", "build"),
@@ -91,8 +87,6 @@ class Country(mg.GeoAgent):
             (trade_c_welfare, 0, "trade", "money"),
             (self.welfare, 0, "nothing", "nothing")
         ]
-        # print(options)
-        # print(self.nr_dirty,self.nr_clean)
 
         # sort options by welfare
         options.sort(reverse=True, key=lambda x: x[0])
@@ -115,10 +109,6 @@ class Country(mg.GeoAgent):
         else:
             pass
 
-        return
-
-    import numpy as np
-
     def would_be_welfare(self, action: str) -> float:
         if action == "dirty":
             add_energy = self.pred_dirty * self.output_single_dirty
@@ -139,53 +129,6 @@ class Country(mg.GeoAgent):
         mt = np.add(self.metabolism["energy"], self.metabolism["money"])
         return np.power(self.wealth["energy"] + self.produced_energy + add_energy, self.metabolism["energy"] / mt)\
                * np.power(self.wealth["money"] - expected_market_cost, self.metabolism["money"] / mt)
-    # def would_be_welfare(self, action: str) -> float:
-    #     """
-    #     Calculate welfare that would be achieved by building a specific plant and trade.
-    #     Assume that we trade for maximum trading volume of 0.1 Energy at the market price of last time.
-    #
-    #     Note that the welfare functions are not adding self.influx_money, because this has happened already in this step.
-    #     This means, the wealth["money"] was already updated
-    #
-    #     :param action: What to do: Build a power plant with "dirty", "clean" or trade with "trade_e" or "trade_m".
-    #     :return:
-    #     """
-    #
-    #     if action == "dirty":
-    #         add_plant_energy = self.pred_dirty * self.output_single_dirty
-    #     elif action == "clean":
-    #         add_plant_energy = self.pred_clean * self.output_single_clean
-    #     elif action == "trade_e" or action == "trade_m":
-    #         pass
-    #     else:
-    #         raise ValueError(f"""Variable action is {action}
-    #          but can only take values "dirty", "clean", "trade_e" or "trade_m".""")
-    #
-    #     # build a plant
-    #     if action == "dirty" or action == "clean":
-    #         mt = np.add(self.metabolism["energy"], self.metabolism["money"])
-    #         return (self.wealth["energy"] + self.produced_energy + add_plant_energy)\
-    #                ** (self.metabolism["energy"] / mt) \
-    #                * (self.wealth["money"] - self.cost_dirty)\
-    #                ** (self.metabolism["money"] / mt)  # no influx money, see Docstring
-    #
-    #     # buy energy
-    #     elif action == "trade_e":
-    #         expected_market_cost = 0.1 * self.last_trade_price_energy  # * add_plant_energy
-    #         mt = np.add(self.metabolism["energy"], self.metabolism["money"])
-    #         return (self.wealth["energy"] + self.produced_energy + 0.1)\
-    #                ** (self.metabolism["energy"] / mt) \
-    #                * (self.wealth["money"] - expected_market_cost)\
-    #                ** (self.metabolism["money"] / mt)  # no influx money, see Docstring
-    #
-    #     # sell energy
-    #     elif action == "trade_m":
-    #         expected_market_energy = 0.1 / self.last_trade_price_energy  # * add_plant_energy
-    #         mt = np.add(self.metabolism["energy"], self.metabolism["money"])
-    #         return (self.wealth["energy"] + self.produced_energy - expected_market_energy)\
-    #                ** (self.metabolism["energy"] / mt) \
-    #                * (self.wealth["money"] + self.influx_money + 0.1)\
-    #                ** (self.metabolism["money"] / mt)
 
     def consume(self) -> None:
         """Use up energy and money"""
@@ -219,10 +162,10 @@ class Country(mg.GeoAgent):
 
         self.welfare = np.multiply(w_money, w_energy)
 
-    def calculate_mrs(self) -> None:  # TODO adjust to new wealth function
+    def calculate_mrs(self) -> None:
         """Calculate Marginal Rate of Substitution (MRS)."""
-        self.mrs = np.divide(np.multiply(self.wealth["energy"], self.metabolism["money"]),
-                             np.multiply(self.wealth["money"], self.metabolism["energy"]))  # IS THIS CORRECT?
+        self.mrs = np.divide(np.multiply(np.add(self.wealth['energy'], self.produced_energy), self.metabolism["money"]),
+                             np.multiply(np.add(self.wealth["money"], self.influx_money), self.metabolism["energy"]))
 
     def build_plant(self, type_plant: str):
         """
@@ -241,8 +184,6 @@ class Country(mg.GeoAgent):
 
     def reduce_pred(self):
         """
-        Reduce predisposition of ditry power based on how many power plants consume it.
-
-
+        Reduce predisposition of dirty power based on how many power plants consume it.
         """
         self.pred_dirty -= self.nr_dirty * 0.005

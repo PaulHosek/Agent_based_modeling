@@ -35,8 +35,8 @@ class GeoModel(mesa.Model):
             agent.metabolism = {"energy": metabs[0], "money": metabs[1]}
             agent.wealth = {"energy": nums[2], "money": nums[3]}
             agent.influx_money = 0.2
-            agent.pred_clean = 0.2
-            agent.pred_dirty = 0.9
+            agent.pred_clean = 0.9
+            agent.pred_dirty = 0.3
             agent.output_single_clean = 0.8
             agent.output_single_dirty = 0.8
             agent.cost_clean = 0.01
@@ -310,24 +310,11 @@ class GeoModel(mesa.Model):
             # cur_country.model.price_record[cur_country.model.step_num].append(price)
             # cur_country.make_link(cur_neigh)
 
-    @staticmethod
-    @numba.jit(fastmath=True, nopython=True)
-    def welfare_single(w1, m1, mt):
-        """Welfare function of only one commodity for the What-if analysis."""
-        return np.power(w1, np.divide(m1, mt))
-
-    @staticmethod
-    @numba.jit(fastmath=True, nopython=True)
-    def mrs(w1, m1, w2, m2):
-        """Calculate Marginal Rate of Substitution for specific parameters. Needed for what-if analysis."""
-        return np.divide(np.multiply(w1, m2), np.multiply(w2, m1))
-
-
 if __name__ == "__main__":
     new = GeoModel()
     now = time.time()
     new.run_model(1000)
-    print(now-time.time())
+    print(time.time()-now)
     data = new.data_collector.get_model_vars_dataframe()
     a_data = new.data_collector.get_agent_vars_dataframe()
     df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
