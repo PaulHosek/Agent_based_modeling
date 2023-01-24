@@ -35,7 +35,7 @@ class GeoModel(mesa.Model):
             agent.metabolism = {"energy": metabs[0], "money": metabs[1]}
             agent.wealth = {"energy": nums[2], "money": nums[3]}
             agent.influx_money = 0.2
-            agent.pred_clean = 0.99
+            agent.pred_clean = 0.2
             agent.pred_dirty = 0.9
             agent.output_single_clean = 0.8
             agent.output_single_dirty = 0.8
@@ -46,9 +46,7 @@ class GeoModel(mesa.Model):
             agent.calculate_mrs()
 
         self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Welfare": 'average_welfare'},
-                                                                 agent_reporters={"Welfare": "welfare",
-                                                                                  "Nr_dirty": "nr_dirty",
-                                                                                  "Nr_clean":"nr_clean"})
+                                                                )  # agent_reporters={"Welfare": "welfare"}
         self.log_data()
 
     def load_country(self, unique_id):
@@ -327,12 +325,7 @@ class GeoModel(mesa.Model):
 
 if __name__ == "__main__":
     new = GeoModel()
-    now = time.time()
-    new.run_model(1000)
-    print(now-time.time())
+    new.run_model(10)
     data = new.data_collector.get_model_vars_dataframe()
-    a_data = new.data_collector.get_agent_vars_dataframe()
-    df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
-    plt.figure()
-    plt.semilogy(df_by_country)
+    data.plot()
     plt.show()
