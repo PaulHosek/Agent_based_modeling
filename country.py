@@ -9,8 +9,8 @@ import numba as nb
 class Country(mg.GeoAgent):
     def __init__(self, unique_id, model, geometry, crs,
                  metabolism={"energy": 1, "money": 1}, wealth={"energy": 1, "money": 1}):
-        """
 
+        """
         :param unique_id: Name of country
         :param model:
         :param geometry:
@@ -39,6 +39,7 @@ class Country(mg.GeoAgent):
         self.output_single_clean: float = 0.0
         self.cost_dirty: float = 0.0
         self.cost_clean: float = 0.0
+
 
     def __repr__(self):
         return f"Country: {self.unique_id}"

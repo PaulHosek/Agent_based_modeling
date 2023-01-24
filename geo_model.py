@@ -6,16 +6,13 @@ import country
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats.mstats import gmean
-import numba
 import time
-import random
-
-# import geopandas as gpd
-# from pyentrp import DiscreteSystem
-
+import segregation
 
 class GeoModel(mesa.Model):
-    def __init__(self):  # TODO need to add initial state parameters to arguments of this function
+    def __init__(self, parameters={"cost clean": 0, "cost dirty": 0,
+                                   "metabolism scalar energy": 1, "metabolism scalar money": 1,
+                                   "eta global trade":0}):  # TODO need to add initial state parameters to arguments of this function
         # initialise global model parameters
         self.step_nr = 0
         self.schedule = mesa.time.RandomActivation(self)
@@ -24,22 +21,24 @@ class GeoModel(mesa.Model):
         self.average_price = 0
         self.var_price = 0
         # P(trade with everyone)
-        self.eta_trading = 0
+        self.eta_trading = parameters["eta global trade"]
 
         # initialise grid
         self.grid = mg.GeoSpace(crs="4326")
 
         # add countries to grid
         ac = mg.AgentCreator(agent_class=country.Country, model=self)
-        self.agents = ac.from_file("europe_countries.geojson", unique_id="NAME")
+        self.agents = ac.from_file("new_eu_countries.geojson", unique_id="NAME")
         # TODO remove countries not in EU
         self.grid.add_agents(self.agents)
 
         df = pd.read_csv("Normalised_data_v2.csv", sep=",", index_col=0)
 
         # set agents initial state
+        # TODO use load countries instead
+        ########################################################
         rng = np.random.default_rng(1)
-        for agent in self.agents: # TODO use load country instead
+        for agent in self.agents:
             self.schedule.add(agent)
             nums = rng.uniform(0.01, 1, size=4)
             metabs = rng.uniform(0.01, 0.1, size=2)
@@ -52,40 +51,37 @@ class GeoModel(mesa.Model):
             agent.output_single_dirty = 0.8
             agent.cost_clean = 0.01
             agent.cost_dirty = 0.01
-
             agent.calculate_welfare()
             agent.calculate_mrs()
+        ##########################################
+
+        for agent in self.agents:
+            agent.cost_clean = parameters["cost clean"]
+            agent.cost_clean = parameters["cost dirty"]
+        self.metab_e_scalar = parameters["metabolism scalar energy"]
+        self.metab_m_scalar = parameters["metabolism scalar money"]
 
         self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Welfare": 'average_welfare'},
                                                                 agent_reporters={"Welfare": "welfare"})
         self.log_data()
 
-    def load_country(self, unique_id):
+    def load_countries(self):
         """
         Initialise the country and fill the attributes from csv.
         :return: None
         """
-        pass
 
-    def log_data(self) -> None:
-        """
-        Compute average values, statistics etc. of the system and self in class attributes (e.g., self.avg_energy).
-        Will feed to data_collector later.
-        :return: None
-        """
-        # compute statistics of the step here
-        nr_agents = len(self.agents)
-        total_welfare = 0
-        prices = np.empty(nr_agents)
-        for idx, agent in enumerate(self.agents):
-            total_welfare += agent.welfare
-            if agent.last_trade_price_energy != 0.0001:
-                prices[idx] = agent.last_trade_price_energy
-        self.average_welfare = total_welfare / nr_agents
-
-        self.average_price = np.mean(prices)
-        self.var_price = np.var(prices)
-        self.data_collector.collect(self)
+        data = pd.read_csv("Normalised_data_v2.csv",sep=",")
+        for agent in self.agents:
+            self.schedule.add(agent)
+            agent_data = data.loc[data['name'] == agent.unique_id]
+            agent.pred_dirty = agent_data["pred_dirty"]
+            agent.pred_clean = agent_data["pred_clean"]
+            agent.metabolism["energy"] = agent_data["energy_demand"] * self.metab_e_scalar
+            agent.gpd_influx = agent_data["gpd_influx"]
+            agent.metabolism["money"] = agent_data["gov_expenditure"] * self.metab_m_scalar
+            agent.calculate_welfare()
+            agent.calculate_mrs()
 
     def run_model(self, nr_steps) -> None:
         """Run model for n steps."""
@@ -100,110 +96,6 @@ class GeoModel(mesa.Model):
         self.schedule.step()
         self.trading_cycle()
         self.log_data()
-
-        # # set agent states of next step
-        # for agent in self.agents():
-        #     agent.perc_energy_met = 0
-        #     agent.pred_dirty -= agent.nr_dirty*2394 # !! placeholder value here !! #
-
-    # def trading_cycle(self) -> None:
-    #     """Do full trading cycle.
-    #     1. Find buying countries
-    #     2. Find selling countries
-    #     3. For each buying country: trade with neighbours until
-    #         a. own energy need fulfilled
-    #         b. neighbors are not selling energy anymore
-    #         c. MRS ratio leads to no trade
-    #
-    #     """
-    #     all_buyers = self.find_buyers()
-    #
-    #
-    #     print(f"{len(all_buyers)}/{len(self.agents)} countries are buying.")
-    #     all_sellers = self.find_sellers()
-    #
-    #     for buyer in all_buyers:
-    #         print([a.wealth['energy'] for a in all_buyers])
-    #         sell_neigh: list = self.get_selling_neigh(buyer, all_sellers)
-    #         # loop over neighbours until there is no trading anymore
-    #
-    #
-    #         test = 0
-    #         while sell_neigh and buyer.wealth["energy"] < 1 and buyer.wealth["energy"] > 0:
-    #             # print(buyer, sell_neigh)
-    #
-    #
-    #             if test == 2:
-    #                 raise KeyboardInterrupt
-    #             test += 1
-    #
-    #             rand_idx = np.random.randint(0, len(sell_neigh))
-    #             cur_neigh: country.Country = sell_neigh[rand_idx] # dont use numpy here!
-    #             if np.isnan(cur_neigh.mrs):
-    #                 print("hallo",[a.wealth['energy'] for a in all_buyers])
-    #                 print(cur_neigh.wealth["energy"])
-    #                 raise KeyboardInterrupt
-    #
-    #             if buyer.mrs == cur_neigh.mrs:
-    #                 del sell_neigh[rand_idx]
-    #                 continue
-    #
-    #             # determine price
-    #
-    #             else:
-    #                 print('mrs', buyer.mrs, cur_neigh.mrs)
-    #                 price: float = gmean([buyer.mrs, cur_neigh.mrs], dtype=float, nan_policy = "raise")
-    #                 print(type(price), price)
-    #                 if price > 1:
-    #                     money: float = price
-    #                     energy: float = 1
-    #                     print(energy,energy)
-    #                 else:
-    #                     energy: float = 1 / price
-    #                     money: float = 1
-    #                     print(energy,energy)
-    #
-    #             # do trades
-    #             # if self.isbeneficial(buyer, energy, energy, cur_neigh):
-    #             if True:
-    #
-    #                 if buyer.mrs < 0:
-    #                     print("---"*10)
-    #                     print(buyer.wealth['energy'], buyer.metabolism['energy'])
-    #                     print(buyer.wealth['money'], buyer.metabolism['money'])
-    #                 elif cur_neigh.mrs < 0:
-    #                     print("---" * 10)
-    #                     print(cur_neigh.wealth['energy'], cur_neigh.metabolism['energy'])
-    #                     print(cur_neigh.wealth['money'], cur_neigh.metabolism['money'])
-    #                 buyer.wealth['energy'] += energy
-    #                 buyer.wealth['money'] -= money
-    #                 cur_neigh.wealth['money'] += money
-    #                 cur_neigh.wealth['energy'] -= energy
-    #                 buyer.calculate_welfare()
-    #                 buyer.calculate_mrs()
-    #                 cur_neigh.calculate_welfare()
-    #                 cur_neigh.calculate_mrs()
-    #                 # buyer.model.price_record[buyer.model.step_num].append(price)
-    #                 # buyer.make_link(cur_neigh)
-    #             # elif self.isbeneficial(cur_neigh, energy, energy, buyer):
-    #             #     buyer.wealth['energy'] -= energy
-    #             #     buyer.wealth['money'] += money
-    #             #     cur_neigh.wealth['money'] -= money
-    #             #     cur_neigh.wealth['energy'] += energy
-    #             #     buyer.calculate_welfare()
-    #             #     buyer.calculate_mrs()
-    #             #     cur_neigh.calculate_welfare()
-    #             #     cur_neigh.calculate_mrs()
-    #                 # buyer.model.price_record[buyer.model.step_num].append(price)
-    #                 # buyer.make_link(cur_neigh)
-    #             else:
-    #                 del sell_neigh[rand_idx]
-    #                 print('not beneficial')
-    #
-    #             print(f"price Energy {energy}, price energy {energy} \n"
-    #                   f"{buyer} buys from {cur_neigh}\n"
-    #                   f"{buyer} has neighbours {sell_neigh}")
-
     def trading_cycle(self) -> None:
         """Do full trading cycle.
         1. Find buying countries
@@ -334,8 +226,34 @@ class GeoModel(mesa.Model):
             cur_neigh.last_trade_price_energy = price
             cur_neigh.last_trade_success = True
 
+        def make_link(self, partner):
+            if self.model.ml.net.has_edge(cur_country, cur_neigh):
+                self.model.ml.net[cur_country][cur_neigh]["trades"] += 1
+            else:
+                self.model.ml.net.add_edge(cur_country, cur_neigh, trades=1)
+
             # cur_country.model.price_record[cur_country.model.step_num].append(price)
             # cur_country.make_link(cur_neigh)
+
+    def log_data(self) -> None:
+        """
+        Compute average values, statistics etc. of the system and self in class attributes (e.g., self.avg_energy).
+        Will feed to data_collector later.
+        :return: None
+        """
+        # compute statistics of the step here
+        nr_agents = len(self.agents)
+        total_welfare = 0
+        prices = np.empty(nr_agents)
+        for idx, agent in enumerate(self.agents):
+            total_welfare += agent.welfare
+            if agent.last_trade_price_energy != 0.0001:
+                prices[idx] = agent.last_trade_price_energy
+        self.average_welfare = total_welfare / nr_agents
+
+        self.average_price = np.mean(prices)
+        self.var_price = np.var(prices)
+        self.data_collector.collect(self)
 
 
 if __name__ == "__main__":
