@@ -141,10 +141,9 @@ class Country(mg.GeoAgent):
             add_plant_energy = -expected_market_energy
 
         mt = np.add(self.metabolism["energy"], self.metabolism["money"])
-        welfare = np.power(self.wealth["energy"] + self.produced_energy + add_plant_energy,
+        return np.power(self.wealth["energy"] + self.produced_energy + add_plant_energy,
                            self.metabolism["energy"] / mt) * np.power(self.wealth["money"] - expected_market_cost,
                                                                       self.metabolism["money"] / mt)
-        return welfare
 
     def would_be_welfare(self, action: str) -> float:
         """
