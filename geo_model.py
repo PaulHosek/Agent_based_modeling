@@ -10,6 +10,9 @@ import numba
 import time
 import random
 
+# import geopandas as gpd
+# from pyentrp import DiscreteSystem
+
 
 class GeoModel(mesa.Model):
     def __init__(self):  # TODO need to add initial state parameters to arguments of this function
@@ -18,6 +21,10 @@ class GeoModel(mesa.Model):
         self.schedule = mesa.time.RandomActivation(self)
         # ...
         self.average_welfare = 0.01
+        self.average_price = 0
+        self.var_price = 0
+        # P(trade with everyone)
+        self.eta_trading = 0
 
         # initialise grid
         self.grid = mg.GeoSpace(crs="4326")
@@ -28,8 +35,7 @@ class GeoModel(mesa.Model):
         # TODO remove countries not in EU
         self.grid.add_agents(self.agents)
 
-        df = pd.read_csv("Normalised_data.csv", sep=",")
-        print(df)
+        df = pd.read_csv("Normalised_data_v2.csv", sep=",", index_col=0)
 
         # set agents initial state
         rng = np.random.default_rng(1)
@@ -68,11 +74,17 @@ class GeoModel(mesa.Model):
         :return: None
         """
         # compute statistics of the step here
+        nr_agents = len(self.agents)
         total_welfare = 0
-        for agent in self.agents:
+        prices = np.empty(nr_agents)
+        for idx, agent in enumerate(self.agents):
             total_welfare += agent.welfare
+            if agent.last_trade_price_energy != 0.0001:
+                prices[idx] = agent.last_trade_price_energy
+        self.average_welfare = total_welfare / nr_agents
 
-        self.average_welfare = total_welfare / len(self.agents)
+        self.average_price = np.mean(prices)
+        self.var_price = np.var(prices)
         self.data_collector.collect(self)
 
     def run_model(self, nr_steps) -> None:
@@ -207,11 +219,16 @@ class GeoModel(mesa.Model):
 
         for cur_country in all_countries:
 
-            all_neighs: list = self.grid.get_neighbors(cur_country)
+            # trade with everyone with probability eta
+            if self.eta_trading > rng.random():
+                all_neighs: list = self.grid.get_neighbors(cur_country)
+            else:
+                all_neighs: list = self.agents
 
             # if country is an island, don't trade
             if not len(all_neighs):
                 cur_country.last_trade_success = False
+                cur_country.last_trade_price_energy = 0.0001
                 continue
 
             cur_neigh = np.random.choice(all_neighs)
@@ -220,6 +237,9 @@ class GeoModel(mesa.Model):
             if cur_country.mrs == cur_neigh.mrs:
                 cur_country.last_trade_success = False
                 cur_neigh.last_trade_success = False
+                cur_country.last_trade_price_energy = 0.0001
+                cur_neigh.last_trade_price_energy = 0.0001
+
                 continue
             else:
                 price: float = float(gmean([cur_country.mrs, cur_neigh.mrs], dtype=float, nan_policy="raise"))
@@ -233,6 +253,8 @@ class GeoModel(mesa.Model):
                 if money_left < 0 or energy_left < 0:
                     cur_country.last_trade_success = False
                     cur_neigh.last_trade_success = False
+                    cur_country.last_trade_price_energy = 0.0001
+                    cur_neigh.last_trade_price_energy = 0.0001
                     continue
 
                 # determine how much is being traded
@@ -315,14 +337,19 @@ class GeoModel(mesa.Model):
             # cur_country.model.price_record[cur_country.model.step_num].append(price)
             # cur_country.make_link(cur_neigh)
 
+
 if __name__ == "__main__":
     new = GeoModel()
     now = time.time()
-    new.run_model(1000)
+    new.run_model(2)
     # print(time.time()-now)
-    data = new.data_collector.get_model_vars_dataframe()
-    # a_data = new.data_collector.get_agent_vars_dataframe()
-    # df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
+    # data = new.data_collector.get_model_vars_dataframe()
+    a_data = new.data_collector.get_agent_vars_dataframe()
+    df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
+    # print()
+    last_state = df_by_country.iloc[-1]
+
     # plt.figure()
     # plt.semilogy(df_by_country)
     # plt.show()
+    # print(a_data)

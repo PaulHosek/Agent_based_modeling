@@ -33,7 +33,7 @@ class Country(mg.GeoAgent):
 
         # attributes set by model
         self.last_trade_success: bool = False
-        self.last_trade_price_energy: float = 0.0001
+        self.last_trade_price_energy: float = 0.0001  # TODO this should probs not be this
         # base output of single plants as determined by the initialisation
         self.output_single_dirty: float = 0.0
         self.output_single_clean: float = 0.0
