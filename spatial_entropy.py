@@ -11,7 +11,7 @@ import pysal.lib
 eu_countries = ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden"]
 welfare_values = np.random.random(size=len(eu_countries))
 # print(pd.DataFrame({'name': eu_countries, 'welfare': welfare_values}))
-gdf = gpd.read_file('europe_countries.geojson')
+gdf = gpd.read_file('legacy/europe_countries.geojson')
 gdf.crs = {'init': 'epsg:4326'}
 gdf = gdf[gdf['NAME'].isin(eu_countries)]
 

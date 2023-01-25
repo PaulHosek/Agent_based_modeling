@@ -20,14 +20,14 @@ class Country(mg.GeoAgent):
         self.name: str = 'na'
         self.metabolism: dict = metabolism
         self.wealth: dict = wealth
-        self.welfare: float = 0.0
-        self.mrs: float = 0.0
-        self.produced_energy: float = 0.0
-        self.influx_money: float = 0.0
+        self.welfare: float = 0.001
+        self.mrs: float = 0.001
+        self.produced_energy: float = 0.001
+        self.influx_money: float = 0.001
 
         # for later
-        self.pred_dirty: float = 0.0
-        self.pred_clean: float = 0.0
+        self.pred_dirty: float = 0.001
+        self.pred_clean: float = 0.001
         self.nr_dirty: int = 0
         self.nr_clean: int = 0
 
@@ -35,10 +35,10 @@ class Country(mg.GeoAgent):
         self.last_trade_success: bool = False
         self.last_trade_price_energy: float = 0.0001  # TODO this should probs not be this
         # base output of single plants as determined by the initialisation
-        self.output_single_dirty: float = 0.0
-        self.output_single_clean: float = 0.0
-        self.cost_dirty: float = 0.0
-        self.cost_clean: float = 0.0
+        self.output_single_dirty: float = 0.001
+        self.output_single_clean: float = 0.001
+        self.cost_dirty: float = 0.001
+        self.cost_clean: float = 0.001
 
 
     def __repr__(self):
@@ -90,11 +90,14 @@ class Country(mg.GeoAgent):
         ]
 
         # sort options by welfare
+
         options.sort(reverse=True, key=lambda x: x[0])
         # choose first option we can afford
         best = next((x for x in options if x[1] < self.wealth["money"] - 0.3),
                     (trade_c_welfare, 0, "clean", "trade"))
         # print(self.nr_dirty,self.nr_clean)
+
+
 
         if best[3] == "build":
             self.build_plant(best[2])

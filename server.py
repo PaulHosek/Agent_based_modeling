@@ -71,8 +71,6 @@ avg_welfare = ChartModule([{"Label": 'welfare', "Color": "Green"}], 200, 500)
 #     {"Label": 'member_eff', "Color": "RoyalBlue"},
 # ], 200, 500)
 
-server = ModularServer(
-    GeoModel, [map_element, avg_welfare], "ABM", model_params
-)
+server = ModularServer(GeoModel, [map_element, avg_welfare], "EU Energy Model", model_params)
 
-server.launch()
+# server.launch()

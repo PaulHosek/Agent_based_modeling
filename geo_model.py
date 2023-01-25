@@ -11,7 +11,6 @@ from scipy.stats.mstats import gmean
 import time
 import segregation
 
-
 class GeoModel(mesa.Model):
     def __init__(self, cost_clean=0, cost_dirty=0, base_output_dirty=0, base_output_clean=0,
                 metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0):  # TODO need to add initial state parameters to arguments of this function
@@ -30,40 +29,42 @@ class GeoModel(mesa.Model):
 
         # add countries to grid
         ac = mg.AgentCreator(agent_class=country.Country, model=self)
-        self.agents = ac.from_file("new_eu_countries.geojson", unique_id="NAME")
+        self.agents = ac.from_file("final_eu_countries.geojson", unique_id="NAME")
         # TODO remove countries not in EU
         self.grid.add_agents(self.agents)
 
-        df = pd.read_csv("Normalised_data_v2.csv", sep=",", index_col=0)
 
         # set agents initial state
-        # TODO use load countries instead
-        ########################################################
-        rng = np.random.default_rng(1)
-        for agent in self.agents:
-            self.schedule.add(agent)
-            nums = rng.uniform(0.01, 1, size=4)
-            metabs = rng.uniform(0.01, 0.1, size=2)
-            agent.metabolism = {"energy": metabs[0], "money": metabs[1]}
-            agent.wealth = {"energy": nums[2], "money": nums[3]}
-            agent.influx_money = 0.2
-            agent.pred_clean = 0.9
-            agent.pred_dirty = 0.3
-            agent.output_single_clean = 0.8
-            agent.output_single_dirty = 0.8
-            agent.cost_clean = 0.01
-            agent.cost_dirty = 0.01
-            agent.calculate_welfare()
-            agent.calculate_mrs()
+        # # TODO use load countries instead
+        # ########################################################
+        # rng = np.random.default_rng(1)
+        # for agent in self.agents:
+        #     self.schedule.add(agent)
+        #     nums = rng.uniform(0.01, 1, size=4)
+        #     metabs = rng.uniform(0.01, 0.1, size=2)
+        #     agent.metabolism = {"energy": metabs[0], "money": metabs[1]}
+        #     agent.wealth = {"energy": nums[2], "money": nums[3]}
+        #     agent.influx_money = 0.2
+        #     agent.pred_clean = 0.9
+        #     agent.pred_dirty = 0.3
+        #     agent.output_single_clean = 0.8
+        #     agent.output_single_dirty = 0.8
+        #     agent.cost_clean = 0.01
+        #     agent.cost_dirty = 0.01
+        #     agent.calculate_welfare()
+        #     agent.calculate_mrs()
         ##########################################
+        self.metab_e_scalar = metabolism_scalar_energy
+        self.metab_m_scalar = metabolism_scalar_money
+
+        self.load_countries()
 
         for agent in self.agents:
             agent.cost_clean = cost_clean
             agent.cost_clean = cost_dirty
             agent.output_single_dirty = base_output_dirty
             agent.output_single_clean = base_output_clean
-        self.metab_e_scalar = metabolism_scalar_energy
-        self.metab_m_scalar = metabolism_scalar_money
+
 
         self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Welfare": 'average_welfare'},
                                                                 agent_reporters={"Welfare": "welfare"})
@@ -75,15 +76,25 @@ class GeoModel(mesa.Model):
         :return: None
         """
 
-        data = pd.read_csv("Normalised_data_v2.csv", sep=",")
+        data = pd.read_csv("countries_data.csv", sep=",")
         for agent in self.agents:
             self.schedule.add(agent)
-            agent_data = data.loc[data['name'] == agent.unique_id]
-            agent.pred_dirty = agent_data["pred_dirty"]
-            agent.pred_clean = agent_data["pred_clean"]
-            agent.metabolism["energy"] = agent_data["energy_demand"] * self.metab_e_scalar
-            agent.gpd_influx = agent_data["gpd_influx"]
-            agent.metabolism["money"] = agent_data["gov_expenditure"] * self.metab_m_scalar
+            agent_data = data.loc[data['Country'] == agent.unique_id]
+            agent.pred_dirty = float(agent_data["pred_dirty"])
+            agent.pred_clean = float(agent_data["pred_clean"])
+
+            agent.metabolism["energy"] = float(agent_data["energy_demand"]) * self.metab_e_scalar
+            agent.gpd_influx = float(agent_data["gdp_influx"])
+            agent.metabolism["money"] = float(agent_data["gov_expenditure"]) * self.metab_m_scalar
+
+            if agent.metabolism['energy'] <=0:
+                agent.metabolism['energy'] = 0.001
+            if agent.metabolism['money'] <=0:
+                agent.metabolism['money'] = 0.001
+            for attr in ["pred_dirty", "pred_clean", "gpd_influx"]:
+                if getattr(agent, attr) <= 0:
+                    setattr(agent, attr, 0.001)
+
             agent.calculate_welfare()
             agent.calculate_mrs()
 
@@ -138,8 +149,9 @@ class GeoModel(mesa.Model):
 
                 continue
             else:
-                price: float = float(gmean([cur_country.mrs, cur_neigh.mrs], dtype=float, nan_policy="raise"))
-
+                price: float = float(gmean([cur_country.mrs, cur_neigh.mrs], dtype=float))
+                if price == np.nan:
+                    raise ValueError(f"{price} is nan.")
             # do trades
             if cur_neigh.mrs > cur_country.mrs:
                 # calculate how much wealth exceeds the buffer
@@ -214,6 +226,7 @@ class GeoModel(mesa.Model):
                     else:
                         energy = 0.1 * price
                         money = 0.1
+
                 # do transaction
                 cur_country.wealth['energy'] -= energy
                 cur_country.wealth['money'] += money
@@ -260,18 +273,18 @@ class GeoModel(mesa.Model):
         self.data_collector.collect(self)
 
 
-# if __name__ == "__main__":
-#     new = GeoModel()
-#     now = time.time()
-#     new.run_model(1000)
-#     # print(time.time()-now)
-#     # data = new.data_collector.get_model_vars_dataframe()
-#     a_data = new.data_collector.get_agent_vars_dataframe()
-#     df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
-#     # print()
-#     last_state = df_by_country.iloc[-1]
-#
-#     plt.figure()
-#     plt.semilogy(df_by_country)
-#     plt.show()
-#     # print(a_data)
+if __name__ == "__main__":
+    new = GeoModel()
+    now = time.time()
+    new.run_model(1)
+    # print(time.time()-now)
+    # data = new.data_collector.get_model_vars_dataframe()
+    a_data = new.data_collector.get_agent_vars_dataframe()
+    df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
+    # print()
+    last_state = df_by_country.iloc[-1]
+
+    plt.figure()
+    plt.semilogy(df_by_country)
+    plt.show()
+    # print(a_data)
