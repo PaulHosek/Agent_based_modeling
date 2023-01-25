@@ -275,6 +275,7 @@ class GeoModel(mesa.Model):
 
         self.average_price = np.mean(prices)
         self.var_price = np.var(prices)
+        print(self.average_welfare)
         self.datacollector.collect(self)
 
 

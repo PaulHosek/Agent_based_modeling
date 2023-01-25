@@ -49,8 +49,8 @@ def welfare_draw(agent):
 
 
 map_element = MapModule(welfare_draw, [57, 12], 3.5, 600, 500)
-avg_welfare = ChartModule([{"Label": 'welfare', "Color": "Green"}], 200, 500)
-
+avg_welfare = ChartModule([{"Label": 'var_price', "Color": "Green"},
+                           {"Label": 'average_welfare', "Color": "Gold"}], 200, 500)
 
 # type_chart = ChartModule([{"Label": 'other_count', "Color": "Tomato"},
 #                           {"Label": 'member_count', "Color": "RoyalBlue"}], 200, 500)
