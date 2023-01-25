@@ -1,4 +1,6 @@
 import mesa
+import os
+os.environ['USE_PYGEOS'] = '0'
 import mesa_geo as mg
 import pandas as pd
 
@@ -9,10 +11,10 @@ from scipy.stats.mstats import gmean
 import time
 import segregation
 
+
 class GeoModel(mesa.Model):
-    def __init__(self, parameters={"cost clean": 0, "cost dirty": 0,
-                                   "metabolism scalar energy": 1, "metabolism scalar money": 1,
-                                   "eta global trade":0}):  # TODO need to add initial state parameters to arguments of this function
+    def __init__(self, cost_clean=0, cost_dirty=0, base_output_dirty=0, base_output_clean=0,
+                metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0):  # TODO need to add initial state parameters to arguments of this function
         # initialise global model parameters
         self.step_nr = 0
         self.schedule = mesa.time.RandomActivation(self)
@@ -21,7 +23,7 @@ class GeoModel(mesa.Model):
         self.average_price = 0
         self.var_price = 0
         # P(trade with everyone)
-        self.eta_trading = parameters["eta global trade"]
+        self.eta_trading = eta_global_trade
 
         # initialise grid
         self.grid = mg.GeoSpace(crs="4326")
@@ -56,10 +58,12 @@ class GeoModel(mesa.Model):
         ##########################################
 
         for agent in self.agents:
-            agent.cost_clean = parameters["cost clean"]
-            agent.cost_clean = parameters["cost dirty"]
-        self.metab_e_scalar = parameters["metabolism scalar energy"]
-        self.metab_m_scalar = parameters["metabolism scalar money"]
+            agent.cost_clean = cost_clean
+            agent.cost_clean = cost_dirty
+            agent.output_single_dirty = base_output_dirty
+            agent.output_single_clean = base_output_clean
+        self.metab_e_scalar = metabolism_scalar_energy
+        self.metab_m_scalar = metabolism_scalar_money
 
         self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Welfare": 'average_welfare'},
                                                                 agent_reporters={"Welfare": "welfare"})
@@ -71,7 +75,7 @@ class GeoModel(mesa.Model):
         :return: None
         """
 
-        data = pd.read_csv("Normalised_data_v2.csv",sep=",")
+        data = pd.read_csv("Normalised_data_v2.csv", sep=",")
         for agent in self.agents:
             self.schedule.add(agent)
             agent_data = data.loc[data['name'] == agent.unique_id]
@@ -256,18 +260,18 @@ class GeoModel(mesa.Model):
         self.data_collector.collect(self)
 
 
-if __name__ == "__main__":
-    new = GeoModel()
-    now = time.time()
-    new.run_model(2)
-    # print(time.time()-now)
-    # data = new.data_collector.get_model_vars_dataframe()
-    a_data = new.data_collector.get_agent_vars_dataframe()
-    df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
-    # print()
-    last_state = df_by_country.iloc[-1]
-
-    # plt.figure()
-    # plt.semilogy(df_by_country)
-    # plt.show()
-    # print(a_data)
+# if __name__ == "__main__":
+#     new = GeoModel()
+#     now = time.time()
+#     new.run_model(1000)
+#     # print(time.time()-now)
+#     # data = new.data_collector.get_model_vars_dataframe()
+#     a_data = new.data_collector.get_agent_vars_dataframe()
+#     df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
+#     # print()
+#     last_state = df_by_country.iloc[-1]
+#
+#     plt.figure()
+#     plt.semilogy(df_by_country)
+#     plt.show()
+#     # print(a_data)
