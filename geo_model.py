@@ -66,7 +66,7 @@ class GeoModel(mesa.Model):
             agent.output_single_clean = base_output_clean
 
 
-        self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Welfare": 'average_welfare'},
+        self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average price'},
                                                                 agent_reporters={"Welfare": "welfare"})
         self.log_data()
 
