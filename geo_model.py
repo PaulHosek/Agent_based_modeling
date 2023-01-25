@@ -66,7 +66,8 @@ class GeoModel(mesa.Model):
             agent.output_single_clean = base_output_clean
 
 
-        self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average price'},
+        self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average_price',
+                                                                                 "Welfare": 'average_welfare'},
                                                                 agent_reporters={"Welfare": "welfare"})
         self.log_data()
 
@@ -76,17 +77,18 @@ class GeoModel(mesa.Model):
         :return: None
         """
 
-        data = pd.read_csv("countries_data.csv", sep=",")
+        data = pd.read_csv("energy_model_v2.csv", sep=",")
         for agent in self.agents:
             self.schedule.add(agent)
+            print(agent.unique_id)
             agent_data = data.loc[data['Country'] == agent.unique_id]
+            print(agent_data["pred_dirty"])
             agent.pred_dirty = float(agent_data["pred_dirty"])
             agent.pred_clean = float(agent_data["pred_clean"])
 
             agent.metabolism["energy"] = float(agent_data["energy_demand"]) * self.metab_e_scalar
             agent.gpd_influx = float(agent_data["gdp_influx"])
             agent.metabolism["money"] = float(agent_data["gov_expenditure"]) * self.metab_m_scalar
-
             if agent.metabolism['energy'] <=0:
                 agent.metabolism['energy'] = 0.001
             if agent.metabolism['money'] <=0:
@@ -267,6 +269,7 @@ class GeoModel(mesa.Model):
             if agent.last_trade_price_energy != 0.0001:
                 prices[idx] = agent.last_trade_price_energy
         self.average_welfare = total_welfare / nr_agents
+        # print(self.average_welfare)
 
         self.average_price = np.mean(prices)
         self.var_price = np.var(prices)
@@ -274,17 +277,19 @@ class GeoModel(mesa.Model):
 
 
 if __name__ == "__main__":
-    new = GeoModel()
     now = time.time()
-    new.run_model(1)
-    # print(time.time()-now)
-    # data = new.data_collector.get_model_vars_dataframe()
-    a_data = new.data_collector.get_agent_vars_dataframe()
-    df_by_country = a_data.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
+    new = GeoModel()
+    new.run_model(1000)
+    print(time.time()-now)
+    data = new.data_collector.get_model_vars_dataframe()
+    print(data)
+    # a_data = new.data_collector.get_agent_vars_dataframe()
+    # df_by_country = a_data.pivot_table(values = 'Price', columns = 'AgentID', index = 'Step')
     # print()
-    last_state = df_by_country.iloc[-1]
+
+    # last_state = df_by_country.iloc[-1]
 
     plt.figure()
-    plt.semilogy(df_by_country)
+    plt.semilogy(data["Welfare"])
     plt.show()
     # print(a_data)
