@@ -26,12 +26,14 @@ class GeoModel(mesa.Model):
 
         # initialise grid
         self.grid = mg.GeoSpace(crs="4326")
+        self.space = mg.GeoSpace(crs="4326")
 
         # add countries to grid
         ac = mg.AgentCreator(agent_class=country.Country, model=self)
         self.agents = ac.from_file("final_eu_countries.geojson", unique_id="NAME")
         # TODO remove countries not in EU
         self.grid.add_agents(self.agents)
+        self.space.add_agents(self.agents)
 
 
         # set agents initial state
@@ -66,7 +68,7 @@ class GeoModel(mesa.Model):
             agent.output_single_clean = base_output_clean
 
 
-        self.data_collector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average_price',
+        self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average_price',
                                                                                  "Welfare": 'average_welfare'},
                                                                 agent_reporters={"Welfare": "welfare"})
         self.log_data()
@@ -257,7 +259,7 @@ class GeoModel(mesa.Model):
     def log_data(self) -> None:
         """
         Compute average values, statistics etc. of the system and self in class attributes (e.g., self.avg_energy).
-        Will feed to data_collector later.
+        Will feed to datacollector later.
         :return: None
         """
         # compute statistics of the step here
@@ -273,23 +275,23 @@ class GeoModel(mesa.Model):
 
         self.average_price = np.mean(prices)
         self.var_price = np.var(prices)
-        self.data_collector.collect(self)
+        self.datacollector.collect(self)
 
 
-if __name__ == "__main__":
-    now = time.time()
-    new = GeoModel()
-    new.run_model(1000)
-    print(time.time()-now)
-    data = new.data_collector.get_model_vars_dataframe()
-    print(data)
-    # a_data = new.data_collector.get_agent_vars_dataframe()
+# if __name__ == "__main__":
+#     now = time.time()
+#     new = GeoModel()
+#     new.run_model(1000)
+#     print(time.time()-now)
+#     data = new.datacollector.get_model_vars_dataframe()
+#     print(data)
+    # a_data = new.datacollector.get_agent_vars_dataframe()
     # df_by_country = a_data.pivot_table(values = 'Price', columns = 'AgentID', index = 'Step')
     # print()
 
     # last_state = df_by_country.iloc[-1]
-
-    plt.figure()
-    plt.semilogy(data["Welfare"])
-    plt.show()
+    #
+    # plt.figure()
+    # plt.semilogy(data["Welfare"])
+    # plt.show()
     # print(a_data)

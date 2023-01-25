@@ -13,16 +13,16 @@ model_params = {
         "slider", "cost dirty", 0.1, 0, 2, 0.01
     ),
     "cost_clean": UserSettableParameter(
-        "slider", "cost dirty", 0.1, 0, 1, 0.001
+        "slider", "cost clean", 0.1, 0, 1, 0.001
     ),
     "metabolism_scalar_energy": UserSettableParameter(
-        "slider", "metabolism scalar energy", 0, 0., 0.2, 0.01
+        "slider", "metabolism scalar energy", 1, 2., 0.2, 0.01
     ),
     "metabolism_scalar_money": UserSettableParameter(
-        "slider", "metabolism scalar money", 0.1, 0, 0.2, 0.01
-    ),
+        "slider", "metabolism scalar money", 1, 2, 0.2, 0.01
+    ),# value, min, max, step
     "eta_global_trade": UserSettableParameter(
-        "slider", "eta global trade", 1.1, 0.5, 3, 0.01
+        "slider", "eta global trade", 0.1, 0, 1, 0.01
     ),
     "base_output_dirty": UserSettableParameter(
         "slider", "Base output dirty", 1, 0.8, 1.2, 0.001
@@ -73,4 +73,4 @@ avg_welfare = ChartModule([{"Label": 'welfare', "Color": "Green"}], 200, 500)
 
 server = ModularServer(GeoModel, [map_element, avg_welfare], "EU Energy Model", model_params)
 
-# server.launch()
+server.launch()
