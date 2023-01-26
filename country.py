@@ -50,7 +50,7 @@ class Country(mg.GeoAgent):
         :return:
         """
         self.collect()
-        self.invest()
+        # self.invest()
         self.consume()
         self.calculate_welfare()
         self.calculate_mrs()
@@ -73,7 +73,10 @@ class Country(mg.GeoAgent):
         5. Compute new wealth for energy and money.
         """
         # if cant afford any plant
-        if self.cost_clean > self.wealth["money"] - 0.3 and self.cost_dirty > self.wealth["money"] - 0.3:
+
+        # if self.cost_clean > self.wealth["money"] - 0.1 and self.cost_dirty > self.wealth["money"] - 0.1:
+        #     return
+        if self.cost_clean > self.wealth["money"] - (self.wealth["energy"]*0.3) and self.cost_dirty > self.wealth["money"] - self.wealth["money"]*0.3:
             return
 
         build_d_welfare = self.would_be_welfare("dirty")
@@ -191,6 +194,6 @@ class Country(mg.GeoAgent):
         """
         Reduce predisposition of dirty power based on how many power plants consume it.
         """
-        self.pred_dirty -= self.nr_dirty * 0.005
+        self.pred_dirty -= self.nr_dirty * 0.0001
         if self.pred_dirty < 0:
             self.pred_dirty = 0

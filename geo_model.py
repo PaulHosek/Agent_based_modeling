@@ -14,8 +14,8 @@ import segregation
 
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=0.1, cost_dirty=0.001, base_output_dirty=0.2, base_output_clean=0.01,
-                 metabolism_scalar_energy=100, metabolism_scalar_money=1, eta_global_trade=0.01):
+    def __init__(self, cost_clean=0.4, cost_dirty=0.4, base_output_dirty=0.1, base_output_clean=0.1,
+                 metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0.01):
         # initialise global model parameters
         self.step_nr = 0
         self.schedule = mesa.time.RandomActivation(self)
@@ -23,6 +23,7 @@ class GeoModel(mesa.Model):
         self.average_price = 0
         self.var_price = 0
         self.avg_pred_dirty = 0.5
+        self.avg_pred_clean = 0.5
         self.avg_nr_dirty = 0
         self.avg_nr_clean = 0
         # P(trade with everyone)
@@ -54,6 +55,8 @@ class GeoModel(mesa.Model):
                                                                                 "Welfare": 'average_welfare',
                                                                                 "nr_dirty": 'avg_nr_dirty',
                                                                                 "nr_clean": 'avg_nr_clean',
+                                                                                "var_price": 'var_price',
+                                                                                "Pred_clean": 'avg_pred_clean',
                                                                                 "Pred_dirty": 'avg_pred_dirty'},
                                                                agent_reporters={"Welfare": "welfare"})
         self.log_data()
@@ -160,8 +163,8 @@ class GeoModel(mesa.Model):
             if cur_neigh.mrs > cur_country.mrs:
                 # calculate how much wealth exceeds the buffer
                 # no trade if no buffer (0.3 energy)
-                energy_left = cur_neigh.wealth['energy'] - 0.3
-                money_left = cur_country.wealth['money'] - 0.3
+                energy_left = cur_neigh.wealth['energy'] - (cur_neigh.wealth['energy']*0.3)
+                money_left = cur_country.wealth['money'] - (cur_country.wealth['money']*0.3)
                 if money_left < 0 or energy_left < 0:
                     cur_country.last_trade_success = False
                     cur_neigh.last_trade_success = False
@@ -203,8 +206,8 @@ class GeoModel(mesa.Model):
             else:
                 # calculate how much wealth exceeds the buffer
                 # no trade if no buffer (0.3 energy)
-                energy_left = cur_country.wealth['energy'] - 0.3
-                money_left = cur_neigh.wealth['money'] - 0.3
+                energy_left = cur_country.wealth['energy'] - (cur_country.wealth['energy']*0.3)
+                money_left = cur_neigh.wealth['money'] -(cur_neigh.wealth['money']*0.3)
                 if money_left < 0 or energy_left < 0:
                     cur_country.last_trade_success = False
                     cur_neigh.last_trade_success = False
@@ -283,7 +286,7 @@ class GeoModel(mesa.Model):
 if __name__ == "__main__":
     now = time.time()
     new = GeoModel()
-    new.run_model(20)
+    new.run_model(1000)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     print(data)
@@ -295,10 +298,12 @@ if __name__ == "__main__":
     #and
     plt.figure()
     # plt.plot(data["Pred_dirty"])
-    plt.plot(data["nr_dirty"], color='brown')
-    plt.plot(data["nr_clean"], color='green')
-    # plt.semilogy(data["Price"])
-    # plt.xlim([10,400])
+    # plt.plot(data["nr_dirty"], color='brown')
+    # plt.plot(data["nr_clean"], color='green')
+    # plt.semilogy(data["Price"][10:])
+    plt.plot(data["Welfare"][10:])
+    # plt.xlim([10,100])
+    # plt.xlim([10,100])
     plt.show()
 
     # print(a_data)
