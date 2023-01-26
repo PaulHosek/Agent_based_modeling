@@ -15,7 +15,7 @@ import segregation
 
 class GeoModel(mesa.Model):
     def __init__(self, cost_clean=0.01, cost_dirty=0.01, base_output_dirty=0.01, base_output_clean=0.01,
-                 metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0.01):
+                 metabolism_scalar_energy=10, metabolism_scalar_money=500, eta_global_trade=0.01):
         # initialise global model parameters
         self.step_nr = 0
         self.schedule = mesa.time.RandomActivation(self)
@@ -25,9 +25,8 @@ class GeoModel(mesa.Model):
         # P(trade with everyone)
         self.eta_trading = eta_global_trade
 
-        # initialise grid
-        # self.space = mg.GeoSpace(crs="4326")
-        self.space= mg.GeoSpace(crs="4326")
+        # initialise space
+        self.space = mg.GeoSpace(crs="4326")
 
         # add countries to space
         ac = mg.AgentCreator(agent_class=country.Country, model=self)
@@ -36,16 +35,17 @@ class GeoModel(mesa.Model):
         self.space.add_agents(self.agents)
 
         # load countries and set model parameters
-        self.metab_e_scalar = metabolism_scalar_energy
-        self.metab_m_scalar = metabolism_scalar_money
+        self.metab_e_scalar: float = float(metabolism_scalar_energy)
+        self.metab_m_scalar: float = float(metabolism_scalar_money)
 
         self.load_countries()
 
+        # parameters equivalent to taxation, subsidies and sanktions
         for agent in self.agents:
-            agent.cost_clean = cost_clean
-            agent.cost_clean = cost_dirty
-            agent.output_single_dirty = base_output_dirty
-            agent.output_single_clean = base_output_clean
+            agent.cost_clean: float = float(cost_clean)
+            agent.cost_clean: float = float(cost_dirty)
+            agent.output_single_dirty: float = float(base_output_dirty)
+            agent.output_single_clean: float = float(base_output_clean)
 
         self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average_price',
                                                                                 "Welfare": 'average_welfare'},
@@ -55,6 +55,9 @@ class GeoModel(mesa.Model):
     def load_countries(self):
         """
         Initialise the country and fill the attributes from csv.
+        All values have been sourced from real data and scaled into [0,1] using min-max scaling.
+        Only "Percentage_GDP_expenditure" was not altered.
+
         :return: None
         """
 
@@ -62,12 +65,21 @@ class GeoModel(mesa.Model):
         for agent in self.agents:
             self.schedule.add(agent)
             agent_data = data.loc[data['Country'] == agent.unique_id]
+
+            # effective power plant output
             agent.pred_dirty = float(agent_data["pred_dirty"])
             agent.pred_clean = float(agent_data["pred_clean"])
 
-            agent.metabolism["energy"] = float(agent_data["energy_demand"]) * self.metab_e_scalar
+            # energy
+            agent.metabolism["energy"] = float(agent_data["energy_demand"] \
+                                               * self.metab_e_scalar)
+            # money
             agent.gpd_influx = float(agent_data["gdp_influx"])
-            agent.metabolism["money"] = float(agent_data["gov_expenditure"]) * self.metab_m_scalar
+            agent.metabolism["money"] = float(agent_data["Percentage_GDP_expenditure"] * agent_data["gdp_influx"] \
+                                              * self.metab_m_scalar)
+            print(agent.wealth["money"])
+
+
             if agent.metabolism['energy'] <= 0:
                 agent.metabolism['energy'] = 0.001
             if agent.metabolism['money'] <= 0:
@@ -75,6 +87,8 @@ class GeoModel(mesa.Model):
             for attr in ["pred_dirty", "pred_clean", "gpd_influx"]:
                 if getattr(agent, attr) <= 0:
                     setattr(agent, attr, 0.001)
+            # need to collect to initialise wealth
+            agent.collect()
 
             agent.calculate_welfare()
             agent.calculate_mrs()
@@ -90,6 +104,7 @@ class GeoModel(mesa.Model):
         """
         self.step_nr += 1
         self.schedule.step()
+        print(len(self.agents))
         self.trading_cycle()
         self.log_data()
 
@@ -106,6 +121,7 @@ class GeoModel(mesa.Model):
 
         def fast_choice(input_list):
             return input_list[np.random.randint(0, len(input_list))]
+
         all_countries = self.agents
         rng = np.random.default_rng()
 
@@ -180,6 +196,7 @@ class GeoModel(mesa.Model):
                 cur_country.calculate_mrs()
                 cur_neigh.calculate_welfare()
                 cur_neigh.calculate_mrs()
+                print('trade')
 
             else:
                 # calculate how much wealth exceeds the buffer
@@ -221,18 +238,12 @@ class GeoModel(mesa.Model):
                 cur_country.calculate_mrs()
                 cur_neigh.calculate_welfare()
                 cur_neigh.calculate_mrs()
-
+                print('trade')
             # pass information about trade to decision function in the next step
             cur_country.last_trade_price_energy = price
             cur_country.last_trade_success = True
             cur_neigh.last_trade_price_energy = price
             cur_neigh.last_trade_success = True
-
-        def make_link(self, partner):
-            if self.model.ml.net.has_edge(cur_country, cur_neigh):
-                self.model.ml.net[cur_country][cur_neigh]["trades"] += 1
-            else:
-                self.model.ml.net.add_edge(cur_country, cur_neigh, trades=1)
 
             # cur_country.model.price_record[cur_country.model.step_num].append(price)
             # cur_country.make_link(cur_neigh)
@@ -262,7 +273,7 @@ class GeoModel(mesa.Model):
 if __name__ == "__main__":
     now = time.time()
     new = GeoModel()
-    new.run_model(1000)
+    new.run_model(200)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     print(data)
@@ -274,5 +285,7 @@ if __name__ == "__main__":
     #
     plt.figure()
     plt.semilogy(data["Welfare"])
+    # plt.semilogy(data["Price"])
     plt.show()
+
     # print(a_data)

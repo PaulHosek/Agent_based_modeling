@@ -62,6 +62,7 @@ class Country(mg.GeoAgent):
         self.wealth["energy"] += self.nr_clean * self.pred_clean \
                                  + self.nr_dirty * self.pred_dirty
         self.wealth["money"] += self.influx_money
+        print("e,m", self.wealth["energy"], self.wealth["money"])
 
     def invest(self) -> None:
         """
@@ -73,6 +74,7 @@ class Country(mg.GeoAgent):
         5. Compute new wealth for energy and money.
         """
         # if cant afford any plant
+        print('invest', self.cost_clean, self.wealth["money"])
         if self.cost_clean > self.wealth["money"] - 0.3 and self.cost_dirty > self.wealth["money"] - 0.3:
             return
 
@@ -86,8 +88,9 @@ class Country(mg.GeoAgent):
             (build_c_welfare, self.cost_clean, "clean", "build"),
             (trade_d_welfare, 0, "trade", "energy"),
             (trade_c_welfare, 0, "trade", "money"),
-            (self.welfare, 0, "nothing", "nothing")
         ]
+        print(options)
+
 
         # sort options by welfare
 
@@ -96,7 +99,7 @@ class Country(mg.GeoAgent):
         best = next((x for x in options if x[1] < self.wealth["money"] - 0.3),
                     (trade_c_welfare, 0, "clean", "trade"))
         # print(self.nr_dirty,self.nr_clean)
-
+        print(self.cost_dirty, self.cost_clean)
 
 
         if best[3] == "build":
@@ -117,15 +120,19 @@ class Country(mg.GeoAgent):
         if action == "dirty":
             add_energy = self.pred_dirty * self.output_single_dirty
             expected_market_cost = self.cost_dirty
+            print("dirty", add_energy, expected_market_cost)
         elif action == "clean":
             add_energy = self.pred_clean * self.output_single_clean
             expected_market_cost = self.cost_clean
+            print("clean", add_energy, expected_market_cost)
         elif action == "trade_e":
-            add_energy = 0.1
-            expected_market_cost = 0.1 * self.last_trade_price_energy
-        elif action == "trade_m":
-            add_energy = 0.1 / self.last_trade_price_energy
+            # sell money, buy energy
+            add_energy = 0.1 * self.last_trade_price_energy
             expected_market_cost = 0.1
+        elif action == "trade_m":
+            # sell energy, buy money
+            add_energy = 0.1
+            expected_market_cost = - 0.1 / self.last_trade_price_energy
         else:
             raise ValueError(
                 f"Variable action is {action} but can only take values 'dirty', 'clean', 'trade_e' or 'trade_m'.")
@@ -191,3 +198,5 @@ class Country(mg.GeoAgent):
         Reduce predisposition of dirty power based on how many power plants consume it.
         """
         self.pred_dirty -= self.nr_dirty * 0.005
+        if self.pred_dirty < 0:
+            self.pred_dirty = 0
