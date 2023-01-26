@@ -12,7 +12,7 @@ problem = {
      'param_for_global_trade',
      'Metabolism_energy',
      'Metabolism_money'],
-    'bounds': [[0, 1], [0, 1], [0, 1], [0,1], [0,1]]}
+     'bounds': [[0, 1], [0, 1], [0, 1], [0,1], [0,1]]}
 
 #replicates = 3
 #max_steps = 100
@@ -31,6 +31,7 @@ samples = pd.DataFrame(data=param_values,
                                  'Metabolism_energy',
                                  'Metabolism_money'])
 
+#just testing
 
 print(samples)
 ppp = samples.iloc[0]
@@ -40,6 +41,7 @@ new = geo_model.GeoModel(cost_dirty=samples.iloc[0][0],
                          metabolism_scalar_energy=samples.iloc[0][3],
                          metabolism_scalar_money=samples.iloc[0][4],
                          eta_global_trade= samples.iloc[0][2])
+
 nw = new.data_collector.get_agent_vars_dataframe()
 df_by_country = nw.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
 # print(df_by_country)
