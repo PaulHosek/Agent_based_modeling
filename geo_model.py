@@ -14,7 +14,7 @@ import segregation
 
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=0.01, cost_dirty=0.01, base_output_dirty=0.01, base_output_clean=0.01,
+    def __init__(self, cost_clean=0.1, cost_dirty=0.001, base_output_dirty=0.2, base_output_clean=0.01,
                  metabolism_scalar_energy=100, metabolism_scalar_money=1, eta_global_trade=0.01):
         # initialise global model parameters
         self.step_nr = 0
@@ -22,6 +22,9 @@ class GeoModel(mesa.Model):
         self.average_welfare = 0.01
         self.average_price = 0
         self.var_price = 0
+        self.avg_pred_dirty = 0.5
+        self.avg_nr_dirty = 0
+        self.avg_nr_clean = 0
         # P(trade with everyone)
         self.eta_trading = eta_global_trade
 
@@ -48,7 +51,10 @@ class GeoModel(mesa.Model):
             agent.output_single_clean: float = float(base_output_clean)
 
         self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average_price',
-                                                                                "Welfare": 'average_welfare'},
+                                                                                "Welfare": 'average_welfare',
+                                                                                "nr_dirty": 'avg_nr_dirty',
+                                                                                "nr_clean": 'avg_nr_clean',
+                                                                                "Pred_dirty": 'avg_pred_dirty'},
                                                                agent_reporters={"Welfare": "welfare"})
         self.log_data()
 
@@ -253,11 +259,20 @@ class GeoModel(mesa.Model):
         nr_agents = len(self.agents)
         total_welfare = 0
         prices = np.empty(nr_agents)
+        pred_dirty = 0
+        nr_dirty = 0
+        nr_clean = 0
         for idx, agent in enumerate(self.agents):
             total_welfare += agent.welfare
+            pred_dirty += agent.pred_dirty
+            nr_clean += agent.nr_clean
+            nr_dirty += agent.nr_dirty
             if agent.last_trade_price_energy != 0.0001:
                 prices[idx] = agent.last_trade_price_energy
         self.average_welfare = total_welfare / nr_agents
+        self.avg_pred_dirty = pred_dirty / nr_agents
+        self.avg_nr_dirty = nr_dirty / nr_agents
+        self.avg_nr_clean = nr_clean / nr_agents
         # print(self.average_welfare)
 
         self.average_price = np.mean(prices)
@@ -268,7 +283,7 @@ class GeoModel(mesa.Model):
 if __name__ == "__main__":
     now = time.time()
     new = GeoModel()
-    new.run_model(400)
+    new.run_model(20)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     print(data)
@@ -279,9 +294,11 @@ if __name__ == "__main__":
     # last_state = df_by_country.iloc[-1]
     #and
     plt.figure()
-    plt.plot(data["Welfare"])
+    # plt.plot(data["Pred_dirty"])
+    plt.plot(data["nr_dirty"], color='brown')
+    plt.plot(data["nr_clean"], color='green')
     # plt.semilogy(data["Price"])
-    plt.xlim([25,400])
+    # plt.xlim([10,400])
     plt.show()
 
     # print(a_data)

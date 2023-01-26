@@ -62,7 +62,6 @@ class Country(mg.GeoAgent):
         self.wealth["energy"] += self.nr_clean * self.pred_clean \
                                  + self.nr_dirty * self.pred_dirty
         self.wealth["money"] += self.influx_money
-        print(self.wealth["energy"])
 
     def invest(self) -> None:
         """
