@@ -62,7 +62,7 @@ class Country(mg.GeoAgent):
         self.wealth["energy"] += self.nr_clean * self.pred_clean \
                                  + self.nr_dirty * self.pred_dirty
         self.wealth["money"] += self.influx_money
-        print("e,m", self.wealth["energy"], self.wealth["money"])
+        print(self.wealth["energy"])
 
     def invest(self) -> None:
         """
@@ -74,7 +74,6 @@ class Country(mg.GeoAgent):
         5. Compute new wealth for energy and money.
         """
         # if cant afford any plant
-        print('invest', self.cost_clean, self.wealth["money"])
         if self.cost_clean > self.wealth["money"] - 0.3 and self.cost_dirty > self.wealth["money"] - 0.3:
             return
 
@@ -84,12 +83,12 @@ class Country(mg.GeoAgent):
         trade_c_welfare = self.would_be_welfare("trade_m")
 
         options = [
-            (build_d_welfare, self.cost_dirty, "dirty", "build"),
-            (build_c_welfare, self.cost_clean, "clean", "build"),
-            (trade_d_welfare, 0, "trade", "energy"),
-            (trade_c_welfare, 0, "trade", "money"),
+            (build_d_welfare, self.cost_dirty, "dirty"),
+            (build_c_welfare, self.cost_clean, "clean"),
+            (trade_d_welfare, 0, "trade"),
+            (trade_c_welfare, 0, "trade"),
         ]
-        print(options)
+        # print(options)
 
 
         # sort options by welfare
@@ -98,18 +97,16 @@ class Country(mg.GeoAgent):
         # choose first option we can afford
         best = next((x for x in options if x[1] < self.wealth["money"] - 0.3),
                     (trade_c_welfare, 0, "clean", "trade"))
-        # print(self.nr_dirty,self.nr_clean)
-        print(self.cost_dirty, self.cost_clean)
 
-
-        if best[3] == "build":
+        if best[2] == "dirty" or best[2] == "clean":
+            print(best[2])
             self.build_plant(best[2])
 
         # if last trade was not successful, but the best option was trade. Try to build the best plant we can.
-        elif best[3] == "trade" and not self.last_trade_success:
+        elif best[2] == "trade" and not self.last_trade_success:
             # if there are any plants we can afford, build the one with the highest welfare
             best_build = sorted((x for x in options
-                                 if x[3] == "build" and x[1] < self.wealth["money"] - 0.3),
+                                 if (x[2] == "dirty" or x[2] == "clean") and x[1] < self.wealth["money"] - 0.3),
                                 reverse=True, key=lambda x: x[0])
             if best_build:
                 self.build_plant(best_build[0][2])
@@ -120,11 +117,9 @@ class Country(mg.GeoAgent):
         if action == "dirty":
             add_energy = self.pred_dirty * self.output_single_dirty
             expected_market_cost = self.cost_dirty
-            print("dirty", add_energy, expected_market_cost)
         elif action == "clean":
             add_energy = self.pred_clean * self.output_single_clean
             expected_market_cost = self.cost_clean
-            print("clean", add_energy, expected_market_cost)
         elif action == "trade_e":
             # sell money, buy energy
             add_energy = 0.1 * self.last_trade_price_energy
