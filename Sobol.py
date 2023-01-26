@@ -34,16 +34,16 @@ samples = pd.DataFrame(data=param_values,
 #just testing
 
 print(samples)
-ppp = samples.iloc[0]
 
-new = geo_model.GeoModel(cost_dirty=samples.iloc[0][0],
-                         cost_clean=samples.iloc[0][1],
-                         metabolism_scalar_energy=samples.iloc[0][3],
-                         metabolism_scalar_money=samples.iloc[0][4],
-                         eta_global_trade= samples.iloc[0][2])
+for i in range(len(samples)):
+    new = geo_model.GeoModel(cost_dirty=samples.iloc[i][0],
+                             cost_clean=samples.iloc[i][1],
+                             metabolism_scalar_energy=samples.iloc[i][3],
+                             metabolism_scalar_money=samples.iloc[i][4],
+                             eta_global_trade= samples.iloc[i][2])
 
-nw = new.data_collector.get_agent_vars_dataframe()
-df_by_country = nw.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
-# print(df_by_country)
-last_state = df_by_country.iloc[-1]
-# print(np.mean(last_state))
+    nw = new.data_collector.get_agent_vars_dataframe()
+    df_by_country = nw.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
+    # print(df_by_country)
+    last_state = df_by_country.iloc[-1]
+    # print(np.mean(last_state))
