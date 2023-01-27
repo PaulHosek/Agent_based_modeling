@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats.mstats import gmean
 import time
-import segregation
+#import segregation
 
 
 class GeoModel(mesa.Model):
@@ -26,6 +26,7 @@ class GeoModel(mesa.Model):
         self.avg_pred_clean = 0.5
         self.avg_nr_dirty = 0
         self.avg_nr_clean = 0
+        self.avg_adoption_green_energy = 0
         # P(trade with everyone)
         self.eta_trading = eta_global_trade
 
@@ -303,7 +304,7 @@ if __name__ == "__main__":
     pd.options.display.max_columns = None
     now = time.time()
     new = GeoModel()
-    new.run_model(1000)
+    new.run_model(10)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     print(data)

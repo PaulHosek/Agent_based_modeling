@@ -24,6 +24,7 @@ class Country(mg.GeoAgent):
         self.mrs: float = 0.001
         self.produced_energy: float = 0.001
         self.influx_money: float = 0.001
+        self.first_green_plant: int = 0
 
         # for later
         self.pred_dirty: float = 0.001
@@ -43,7 +44,7 @@ class Country(mg.GeoAgent):
 
 
     def __repr__(self):
-        return f"Country: {self.unique_id}"
+        return str(self.unique_id)
 
     def step(self) -> None:
         """
@@ -102,6 +103,8 @@ class Country(mg.GeoAgent):
                     (trade_c_welfare, 0, "clean", "trade"))
 
         if best[2] == "dirty" or best[2] == "clean":
+            #if best[2] == 'clean' and self.first_green_plant == 0:
+                #self.first_green_plant == timestep? ## HOW DO I GET THE TIME STEP?
             print(best[2])
             self.build_plant(best[2])
 
