@@ -26,6 +26,7 @@ class GeoModel(mesa.Model):
         self.avg_pred_clean = 0.5
         self.avg_nr_dirty = 0
         self.avg_nr_clean = 0
+        self.gini = 0
         # P(trade with everyone)
         self.eta_trading = eta_global_trade
 
@@ -54,6 +55,7 @@ class GeoModel(mesa.Model):
 
         self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average_price',
                                                                                 "Welfare": 'average_welfare',
+                                                                                "Gini": 'gini',
                                                                                 "nr_dirty": 'avg_nr_dirty',
                                                                                 "nr_clean": 'avg_nr_clean',
                                                                                 "var_price": 'var_price',
@@ -315,8 +317,9 @@ if __name__ == "__main__":
     #and
     plt.figure()
     # plt.plot(data["Pred_dirty"])
-    plt.plot(data["nr_dirty"], color='brown')
-    plt.plot(data["nr_clean"], color='green')
+    # plt.plot(data["nr_dirty"], color='brown')
+    # plt.plot(data["nr_clean"], color='green')
+    plt.plot(data["Gini"], color='green')
     # plt.semilogy(data["Price"][10:])
     # plt.plot(data["Welfare"][10:])
     # plt.xlim([10,100])
