@@ -10,12 +10,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats.mstats import gmean
 import time
-#import segregation
+import geopandas as gpd
+from esda.moran import Moran
+import libpysal
 
+
+df = gpd.read_file("final_eu_countries.geojson")
+# df['geometry'] = df['geometry'].boundary
+# Create a spatial weights matrix based on Rook contiguity
+weights_moran = libpysal.weights.Rook.from_dataframe(df)
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=0.001, cost_dirty=0.001, base_output_dirty=0.51, base_output_clean=0.311,
-                 metabolism_scalar_energy=100, metabolism_scalar_money=1, eta_global_trade=0.01, predisposition_decrease = 0.001):
+    def __init__(self, cost_clean=0.001, cost_dirty=0.001, base_output_dirty=0.11, base_output_clean=0.051,
+                 metabolism_scalar_energy=10, metabolism_scalar_money=1, eta_global_trade=0.01, predisposition_decrease = 0.001):
         # initialise global model parameters
         self.step_nr = 0
         self.schedule = mesa.time.RandomActivation(self)
@@ -26,12 +33,14 @@ class GeoModel(mesa.Model):
         self.avg_pred_clean = 0.5
         self.avg_nr_dirty = 0
         self.avg_nr_clean = 0
-        self.avg_adoption_green_energy = 0
+        self.gini = 0
+        self.moran = 0
         # P(trade with everyone)
         self.eta_trading = eta_global_trade
 
         # initialise space
         self.space = mg.GeoSpace(crs="4326")
+
 
         # add countries to space
         ac = mg.AgentCreator(agent_class=country.Country, model=self)
@@ -55,12 +64,16 @@ class GeoModel(mesa.Model):
 
         self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average_price',
                                                                                 "Welfare": 'average_welfare',
-                                                                                "nr_dirty": 'avg_nr_dirty',
-                                                                                "nr_clean": 'avg_nr_clean',
+                                                                                "Gini": 'gini',
+                                                                                "Morans_i": 'moran',
+                                                                                "avg_nr_dirty": 'avg_nr_dirty',
+                                                                                "avg_nr_clean": 'avg_nr_clean',
                                                                                 "var_price": 'var_price',
                                                                                 "Pred_clean": 'avg_pred_clean',
                                                                                 "Pred_dirty": 'avg_pred_dirty'},
-                                                               agent_reporters={"Welfare": "welfare"})
+                                                               agent_reporters={"Welfare": "welfare",
+                                                                                "nr_dirty": "nr_dirty",
+                                                                                "nr_clean": "nr_clean"})
         self.log_data()
 
     def load_countries(self):
@@ -273,24 +286,25 @@ class GeoModel(mesa.Model):
         total_welfare = 0
         prices = np.empty(nr_agents)
         pred_dirty = 0
-        nr_dirty = 0
-        nr_clean = 0
+        total_nr_dirty = 0
+        total_nr_clean = 0
         welfares_list = np.empty(nr_agents)
         for idx, agent in enumerate(self.agents):
             total_welfare += agent.welfare
             pred_dirty += agent.pred_dirty
-            nr_clean += agent.nr_clean
-            nr_dirty += agent.nr_dirty
+            total_nr_clean += agent.nr_clean
+            total_nr_dirty += agent.nr_dirty
             welfares_list[idx] = agent.welfare
             if agent.last_trade_price_energy != 0.0001:
                 prices[idx] = agent.last_trade_price_energy
         self.gini = gini_coef(welfares_list)
+        self.moran = Moran(welfares_list, weights_moran)
 
 
         self.average_welfare = total_welfare / nr_agents
         self.avg_pred_dirty = pred_dirty / nr_agents
-        self.avg_nr_dirty = nr_dirty / nr_agents
-        self.avg_nr_clean = nr_clean / nr_agents
+        self.avg_nr_dirty = total_nr_dirty / nr_agents
+        self.avg_nr_clean = total_nr_clean / nr_agents
 
 
         # print(self.average_welfare)
@@ -308,7 +322,8 @@ if __name__ == "__main__":
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     print(data)
-    # a_data = new.datacollector.get_agent_vars_dataframe()
+    a_data = new.datacollector.get_agent_vars_dataframe()
+    print(a_data)
     # df_by_country = a_data.pivot_table(values = 'Price', columns = 'AgentID', index = 'Step')
     # print()
 
@@ -316,8 +331,10 @@ if __name__ == "__main__":
     #and
     plt.figure()
     # plt.plot(data["Pred_dirty"])
-    plt.plot(data["nr_dirty"], color='brown')
-    plt.plot(data["nr_clean"], color='green')
+    # plt.plot(data["avg_nr_dirty"], color='brown')
+    # plt.plot(data["avg_nr_clean"], color='green')
+    plt.plot(data["Morans_i"], color='green')
+    # plt.plot(data["Gini"], color='green')
     # plt.semilogy(data["Price"][10:])
     # plt.plot(data["Welfare"][10:])
     # plt.xlim([10,100])
