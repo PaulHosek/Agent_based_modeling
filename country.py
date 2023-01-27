@@ -30,6 +30,7 @@ class Country(mg.GeoAgent):
         self.pred_clean: float = 0.001
         self.nr_dirty: int = 0
         self.nr_clean: int = 0
+        self.pred_decrease: float = 0.001
 
         # attributes set by model
         self.last_trade_success: bool = False
@@ -50,7 +51,7 @@ class Country(mg.GeoAgent):
         :return:
         """
         self.collect()
-        # self.invest()
+        self.invest()
         self.consume()
         self.calculate_welfare()
         self.calculate_mrs()
@@ -194,6 +195,6 @@ class Country(mg.GeoAgent):
         """
         Reduce predisposition of dirty power based on how many power plants consume it.
         """
-        self.pred_dirty -= self.nr_dirty * 0.0001
+        self.pred_dirty -= self.nr_dirty * self.pred_decrease #0.0001
         if self.pred_dirty < 0:
             self.pred_dirty = 0

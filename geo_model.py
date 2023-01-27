@@ -14,8 +14,8 @@ import segregation
 
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=0.4, cost_dirty=0.4, base_output_dirty=0.1, base_output_clean=0.1,
-                 metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0.01):
+    def __init__(self, cost_clean=0.001, cost_dirty=0.001, base_output_dirty=0.51, base_output_clean=0.311,
+                 metabolism_scalar_energy=100, metabolism_scalar_money=1, eta_global_trade=0.01, predisposition_decrease = 0.001):
         # initialise global model parameters
         self.step_nr = 0
         self.schedule = mesa.time.RandomActivation(self)
@@ -50,6 +50,7 @@ class GeoModel(mesa.Model):
             agent.cost_clean: float = float(cost_dirty)
             agent.output_single_dirty: float = float(base_output_dirty)
             agent.output_single_clean: float = float(base_output_clean)
+            agent.pred_decrease: float = float(predisposition_decrease)
 
         self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average_price',
                                                                                 "Welfare": 'average_welfare',
@@ -258,6 +259,14 @@ class GeoModel(mesa.Model):
         Will feed to datacollector later.
         :return: None
         """
+
+        def gini_coef(x, w=None):
+            x = np.asarray(x)
+            sorted_x = np.sort(x)
+            n = len(x)
+            cumx = np.cumsum(sorted_x, dtype=float)
+            return (n + 1 - 2 * np.sum(cumx) / cumx[-1]) / n
+
         # compute statistics of the step here
         nr_agents = len(self.agents)
         total_welfare = 0
@@ -265,17 +274,24 @@ class GeoModel(mesa.Model):
         pred_dirty = 0
         nr_dirty = 0
         nr_clean = 0
+        welfares_list = np.empty(nr_agents)
         for idx, agent in enumerate(self.agents):
             total_welfare += agent.welfare
             pred_dirty += agent.pred_dirty
             nr_clean += agent.nr_clean
             nr_dirty += agent.nr_dirty
+            welfares_list[idx] = agent.welfare
             if agent.last_trade_price_energy != 0.0001:
                 prices[idx] = agent.last_trade_price_energy
+        self.gini = gini_coef(welfares_list)
+
+
         self.average_welfare = total_welfare / nr_agents
         self.avg_pred_dirty = pred_dirty / nr_agents
         self.avg_nr_dirty = nr_dirty / nr_agents
         self.avg_nr_clean = nr_clean / nr_agents
+
+
         # print(self.average_welfare)
 
         self.average_price = np.mean(prices)
@@ -284,6 +300,7 @@ class GeoModel(mesa.Model):
 
 
 if __name__ == "__main__":
+    pd.options.display.max_columns = None
     now = time.time()
     new = GeoModel()
     new.run_model(1000)
@@ -298,10 +315,10 @@ if __name__ == "__main__":
     #and
     plt.figure()
     # plt.plot(data["Pred_dirty"])
-    # plt.plot(data["nr_dirty"], color='brown')
-    # plt.plot(data["nr_clean"], color='green')
+    plt.plot(data["nr_dirty"], color='brown')
+    plt.plot(data["nr_clean"], color='green')
     # plt.semilogy(data["Price"][10:])
-    plt.plot(data["Welfare"][10:])
+    # plt.plot(data["Welfare"][10:])
     # plt.xlim([10,100])
     # plt.xlim([10,100])
     plt.show()
