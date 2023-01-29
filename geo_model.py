@@ -35,6 +35,12 @@ class GeoModel(mesa.Model):
         self.avg_nr_clean = 0
         self.gini = 0
         self.prop_clean = 0
+        self.more_clean = 0
+        self.more_dirty = 0
+        self.timestep = 0
+        self.dom = ''
+        self.clean_overtake = 0
+
         # P(trade with everyone)
         self.eta_trading = eta_global_trade
 
@@ -69,7 +75,12 @@ class GeoModel(mesa.Model):
                                                                                 "avg_nr_clean": 'avg_nr_clean',
                                                                                 "var_price": 'var_price',
                                                                                 "Pred_clean": 'avg_pred_clean',
-                                                                                "Pred_dirty": 'avg_pred_dirty'},
+                                                                                "Pred_dirty": 'avg_pred_dirty',
+                                                                                "proportion_clean":"prop_clean",
+                                                                                "clean_overtake":"clean_overtake",
+                                                                                "more_clean":"more_clean",
+                                                                                "more_dirty": "more_dirty",
+                                                                                "dominating_type":"dom"},
                                                                agent_reporters={"Welfare": "welfare",
                                                                                 "nr_dirty": "nr_dirty",
                                                                                 "nr_clean": "nr_clean"})
@@ -297,14 +308,26 @@ class GeoModel(mesa.Model):
             if agent.last_trade_price_energy != 0.0001:
                 prices[idx] = agent.last_trade_price_energy
         self.gini = gini_coef(welfares_list)
-        self.prop_clean = total_nr_clean/(total_nr_dirty+total_nr_clean)
 
+        if total_nr_clean != 0 and total_nr_dirty != 0:
+            self.prop_clean = total_nr_clean/(total_nr_dirty+total_nr_clean)
+
+        self.timestep += 1
+        if total_nr_clean > total_nr_dirty:
+            if self.dom == 'dirty':
+                self.clean_overtake = self.timestep
+            self.more_clean += 1
+            self.dom = 'clean'
+        elif total_nr_clean < total_nr_dirty:
+            if self.dom == 'clean':
+                self.clean_overtake = self.timestep
+            self.more_dirty += 1
+            self.dom = 'dirty'
 
         self.average_welfare = total_welfare / nr_agents
         self.avg_pred_dirty = pred_dirty / nr_agents
         self.avg_nr_dirty = total_nr_dirty / nr_agents
         self.avg_nr_clean = total_nr_clean / nr_agents
-
 
         # print(self.average_welfare)
 
@@ -320,18 +343,24 @@ if __name__ == "__main__":
     new.run_model(1000)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
-    print(data)
+    #print(data)
     a_data = new.datacollector.get_agent_vars_dataframe()
-    print(a_data)
+    #print(a_data)
     # df_by_country = a_data.pivot_table(values = 'Price', columns = 'AgentID', index = 'Step')
     # print()
 
     # last_state = df_by_country.iloc[-1]
     #and
     plt.figure()
-    # plt.plot(data["Pred_dirty"])
+    #plt.plot(data["Pred_dirty"])
     plt.plot(data["avg_nr_dirty"], color='brown')
     plt.plot(data["avg_nr_clean"], color='green')
+    plt.show()
+    plt.figure()
+    plt.plot(data["proportion_clean"], color='r')
+    print(data.clean_overtake)
+
+
     # plt.plot(data["Morans_i"], color='green')
     # plt.plot(data["Gini"], color='green')
     # plt.semilogy(data["Price"][10:])
