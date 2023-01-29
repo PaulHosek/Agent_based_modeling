@@ -7,7 +7,6 @@ import country
 
 
 class TestGeoModel(unittest.TestCase):
-
     def test_init(self):
         model = geo_model.GeoModel()
         self.assertIsInstance(model.schedule, mesa.time.RandomActivation)
