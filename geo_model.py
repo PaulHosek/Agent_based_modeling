@@ -10,15 +10,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats.mstats import gmean
 import time
-import geopandas as gpd
-# from esda.moran import Moran
-# import libpysal
 
 
-df = gpd.read_file("final_eu_countries.geojson")
-# df['geometry'] = df['geometry'].boundary
-# Create a spatial weights matrix based on Rook contiguity
-# weights_moran = libpysal.weights.Rook.from_dataframe(df)
 
 class GeoModel(mesa.Model):
     def __init__(self, cost_clean=0.001, cost_dirty=0.001, base_output_dirty=0.2, base_output_clean=0.051,
@@ -329,44 +322,24 @@ class GeoModel(mesa.Model):
         self.avg_nr_dirty = total_nr_dirty / nr_agents
         self.avg_nr_clean = total_nr_clean / nr_agents
 
-        # print(self.average_welfare)
-
         self.average_price = np.mean(prices)
         self.var_price = np.var(prices)
         self.datacollector.collect(self)
 
 
-if __name__ == "__main__":
-    pd.options.display.max_columns = None
-    now = time.time()
-    new = GeoModel()
-    new.run_model(1000)
-    print(time.time() - now)
-    data = new.datacollector.get_model_vars_dataframe()
-    #print(data)
-    a_data = new.datacollector.get_agent_vars_dataframe()
-    #print(a_data)
-    # df_by_country = a_data.pivot_table(values = 'Price', columns = 'AgentID', index = 'Step')
-    # print()
-
-    # last_state = df_by_country.iloc[-1]
-    #and
-    plt.figure()
-    #plt.plot(data["Pred_dirty"])
-    plt.plot(data["avg_nr_dirty"], color='brown')
-    plt.plot(data["avg_nr_clean"], color='green')
-    plt.show()
-    plt.figure()
-    plt.plot(data["proportion_clean"], color='r')
-    print(data.clean_overtake)
-
-
-    # plt.plot(data["Morans_i"], color='green')
-    # plt.plot(data["Gini"], color='green')
-    # plt.semilogy(data["Price"][10:])
-    # plt.plot(data["Welfare"][10:])
-    # plt.xlim([10,100])
-    # plt.xlim([10,100])
-    plt.show()
-
-    # print(a_data)
+# if __name__ == "__main__":
+#     pd.options.display.max_columns = None
+#     now = time.time()
+#     new = GeoModel()
+#     new.run_model(1000)
+#     print(time.time() - now)
+#     data = new.datacollector.get_model_vars_dataframe()
+#     a_data = new.datacollector.get_agent_vars_dataframe()
+#     plt.figure()
+#     plt.plot(data["avg_nr_dirty"], color='brown')
+#     plt.plot(data["avg_nr_clean"], color='green')
+#     plt.show()
+#     plt.figure()
+#     plt.plot(data["proportion_clean"], color='r')
+#     print(data.clean_overtake)
+#     plt.show()
