@@ -327,13 +327,14 @@ class GeoModel(mesa.Model):
         self.datacollector.collect(self)
 
 
-# if __name__ == "__main__":
+#if __name__ == "__main__":
 #     pd.options.display.max_columns = None
 #     now = time.time()
-#     new = GeoModel()
-#     new.run_model(1000)
+#      new = GeoModel()
+#      new.run_model(1000)
 #     print(time.time() - now)
-#     data = new.datacollector.get_model_vars_dataframe()
+#      data = new.datacollector.get_model_vars_dataframe()
+#     print(data)
 #     a_data = new.datacollector.get_agent_vars_dataframe()
 #     plt.figure()
 #     plt.plot(data["avg_nr_dirty"], color='brown')
