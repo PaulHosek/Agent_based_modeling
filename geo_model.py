@@ -11,18 +11,18 @@ import matplotlib.pyplot as plt
 from scipy.stats.mstats import gmean
 import time
 import geopandas as gpd
-from esda.moran import Moran
-import libpysal
+# from esda.moran import Moran
+# import libpysal
 
 
 df = gpd.read_file("final_eu_countries.geojson")
 # df['geometry'] = df['geometry'].boundary
 # Create a spatial weights matrix based on Rook contiguity
-weights_moran = libpysal.weights.Rook.from_dataframe(df)
+# weights_moran = libpysal.weights.Rook.from_dataframe(df)
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=0.001, cost_dirty=0.001, base_output_dirty=0.11, base_output_clean=0.051,
-                 metabolism_scalar_energy=10, metabolism_scalar_money=1, eta_global_trade=0.01, predisposition_decrease = 0.001):
+    def __init__(self, cost_clean=0.001, cost_dirty=0.001, base_output_dirty=0.2, base_output_clean=0.051,
+                 metabolism_scalar_energy=10, metabolism_scalar_money=1, eta_global_trade=0.5, predisposition_decrease = 0.001):
         # initialise global model parameters
         self.step_nr = 0
         self.schedule = mesa.time.RandomActivation(self)
@@ -34,7 +34,7 @@ class GeoModel(mesa.Model):
         self.avg_nr_dirty = 0
         self.avg_nr_clean = 0
         self.gini = 0
-        self.moran = 0
+        self.prop_clean = 0
         # P(trade with everyone)
         self.eta_trading = eta_global_trade
 
@@ -65,7 +65,6 @@ class GeoModel(mesa.Model):
         self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average_price',
                                                                                 "Welfare": 'average_welfare',
                                                                                 "Gini": 'gini',
-                                                                                "Morans_i": 'moran',
                                                                                 "avg_nr_dirty": 'avg_nr_dirty',
                                                                                 "avg_nr_clean": 'avg_nr_clean',
                                                                                 "var_price": 'var_price',
@@ -298,7 +297,7 @@ class GeoModel(mesa.Model):
             if agent.last_trade_price_energy != 0.0001:
                 prices[idx] = agent.last_trade_price_energy
         self.gini = gini_coef(welfares_list)
-        self.moran = Moran(welfares_list, weights_moran)
+        self.prop_clean = total_nr_clean/(total_nr_dirty+total_nr_clean)
 
 
         self.average_welfare = total_welfare / nr_agents
@@ -318,7 +317,7 @@ if __name__ == "__main__":
     pd.options.display.max_columns = None
     now = time.time()
     new = GeoModel()
-    new.run_model(10)
+    new.run_model(1000)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     print(data)
@@ -331,9 +330,9 @@ if __name__ == "__main__":
     #and
     plt.figure()
     # plt.plot(data["Pred_dirty"])
-    # plt.plot(data["avg_nr_dirty"], color='brown')
-    # plt.plot(data["avg_nr_clean"], color='green')
-    plt.plot(data["Morans_i"], color='green')
+    plt.plot(data["avg_nr_dirty"], color='brown')
+    plt.plot(data["avg_nr_clean"], color='green')
+    # plt.plot(data["Morans_i"], color='green')
     # plt.plot(data["Gini"], color='green')
     # plt.semilogy(data["Price"][10:])
     # plt.plot(data["Welfare"][10:])

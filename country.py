@@ -3,8 +3,6 @@ import mesa_geo as mg
 import typing
 import geo_model
 import numpy as np
-import numba as nb
-
 
 class Country(mg.GeoAgent):
     def __init__(self, unique_id, model, geometry, crs,
@@ -105,7 +103,6 @@ class Country(mg.GeoAgent):
         if best[2] == "dirty" or best[2] == "clean":
             #if best[2] == 'clean' and self.first_green_plant == 0:
                 #self.first_green_plant == timestep? ## HOW DO I GET THE TIME STEP?
-            print(best[2])
             self.build_plant(best[2])
 
         # if last trade was not successful, but the best option was trade. Try to build the best plant we can.
