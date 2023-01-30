@@ -12,7 +12,7 @@ import numpy as np
 import time
 
 samples = pd.read_csv("Sobol_256.csv", index_col=0)
-samples = samples[:51]      # PAUL
+# samples = samples[:51]      # PAUL
 # samples = samples[51:102]   # SOUVIK
 # samples = samples[102:153]  # TIJN
 # samples = samples[153:204]  # CONOR
@@ -20,7 +20,7 @@ samples = samples[:51]      # PAUL
 
 # TODO slice your region here before removing the KeyboardIntterupt
 
-# raise KeyboardInterrupt
+raise KeyboardInterrupt
 
 #just testing
 
