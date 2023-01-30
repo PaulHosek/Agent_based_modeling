@@ -7,7 +7,7 @@ from SALib.sample import saltelli, sobol
 from SALib.analyze import sobol
 import pandas as pd
 import geo_model
-from geo_model import *
+from geo_model2 import *
 import numpy as np
 import time
 
