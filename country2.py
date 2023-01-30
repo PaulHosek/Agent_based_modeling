@@ -8,7 +8,7 @@ import math
 
 class Country(mg.GeoAgent):
     def __init__(self, unique_id, model, geometry, crs,
-                 m_energy=0.01, m_money=0.01,  w_energy=0.01, w_money=0.01, predisposition_decrease=0.0001) :
+                 m_energy=0.01, m_money=0.01, w_energy=0.01, w_money=0.01, predisposition_decrease=0.0001):
 
         """
         :param unique_id: Name of country
@@ -28,7 +28,6 @@ class Country(mg.GeoAgent):
         self.w_energy = w_energy
         self.m_money = m_money
         self.m_energy = m_energy
-        
 
         # for later
         self.pred_dirty: float = 0.001
@@ -62,12 +61,11 @@ class Country(mg.GeoAgent):
         self.reduce_pred()
         self.kill_plant()
 
-
     def collect(self) -> None:
         """Collect energy and money from power plants and gdp influx.
         """
         self.w_energy += self.nr_clean * self.pred_clean * self.output_single_clean \
-                                 + self.nr_dirty * self.pred_dirty * self.output_single_dirty
+                         + self.nr_dirty * self.pred_dirty * self.output_single_dirty
         self.w_money += self.influx_money
 
     def invest(self) -> None:
@@ -98,14 +96,14 @@ class Country(mg.GeoAgent):
             [build_d_welfare, self.cost_dirty, "dirty"],
             [build_c_welfare, self.cost_clean, "clean"],
             [trade_d_welfare, 0, "trade"],
-            [trade_c_welfare, 0, "trade"] # TODO cost should not be 0
+            [trade_c_welfare, 0, "trade"]  # TODO cost should not be 0
         ]
         options = [x for x in options if not math.isnan(x[1])]
 
         # sort options by welfare
 
         options.sort(reverse=True, key=lambda x: x[0])
-        options = sorted(options, reverse=True, key= lambda x: x[0])
+        options = sorted(options, reverse=True, key=lambda x: x[0])
         # print("Options", options)
         # choose first option we can afford
         best = next((x for x in options if x[1] < self.w_money - (self.w_money * 0.3) and not math.isnan(x[1])),
@@ -125,7 +123,6 @@ class Country(mg.GeoAgent):
         # else:
         #     pass
 
-
     def would_be_welfare(self, action: str) -> float:
         if action == "dirty":
             add_energy = self.pred_dirty * self.output_single_dirty
@@ -133,7 +130,7 @@ class Country(mg.GeoAgent):
         elif action == "clean":
             add_energy = self.pred_clean * self.output_single_clean
             expected_market_cost = self.cost_clean
-        elif action == "trade_e": # TODO make sure right operations
+        elif action == "trade_e":  # TODO make sure right operations
             # sell energy
             add_energy = -0.1
             expected_market_cost = 0.1 * self.last_trade_price_energy
@@ -158,7 +155,6 @@ class Country(mg.GeoAgent):
             self.w_energy = 0.01
         if self.w_money < 0:
             self.w_money = 0.01
-
 
     def calculate_welfare(self) -> None:
         """
