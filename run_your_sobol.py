@@ -21,7 +21,6 @@ samples = pd.read_csv("Sobol_256.csv", index_col=0)
 # TODO slice your region here before removing the KeyboardIntterupt
 
 raise KeyboardInterrupt
-
 #just testing
 
 print(samples)
@@ -37,7 +36,7 @@ for i in range(len(samples)):
                              metabolism_scalar_money= samples.iloc[i][5],
                              eta_global_trade= samples.iloc[i][6],
                              predisposition_decrease= samples.iloc[i][7])
-    new.run_model(10)
+    new.run_model(1000)
     nw1 = new.datacollector.get_agent_vars_dataframe()
     nw2 = new.datacollector.get_model_vars_dataframe()
     # print(nw2)
@@ -62,8 +61,8 @@ outputs2 = pd.DataFrame(data = avg_last_price,
 
 # TODO SAVE MY DATA BITTE
 
-outputs1.to_csv("my_name1.csv")
-outputs2.to_csv("my_name2.csv")
+outputs1.to_csv("paul1.csv")
+outputs2.to_csv("paul2.csv")
 
 
 raise KeyboardInterrupt
