@@ -3,12 +3,10 @@ import mesa_geo as mg
 import typing
 import geo_model
 import numpy as np
-import math
-
 
 class Country(mg.GeoAgent):
     def __init__(self, unique_id, model, geometry, crs,
-                 m_energy=0.01, m_money=0.01,  w_energy=0.01, w_money=0.01, predisposition_decrease=0.0001) :
+                 metabolism={"energy": 1, "money": 1}, wealth={"energy": 1, "money": 1}):
 
         """
         :param unique_id: Name of country
@@ -18,24 +16,20 @@ class Country(mg.GeoAgent):
         super().__init__(unique_id, model, geometry, crs)
         # attributes
         self.name: str = 'na'
-        # self.metabolism: dict = metabolism
-        # self.wealth: dict = wealth
+        self.metabolism: dict = metabolism
+        self.wealth: dict = wealth
         self.welfare: float = 0.001
         self.mrs: float = 0.001
         self.produced_energy: float = 0.001
         self.influx_money: float = 0.001
-        self.w_money = w_money
-        self.w_energy = w_energy
-        self.m_money = m_money
-        self.m_energy = m_energy
-        
+        self.first_green_plant: int = 0
 
         # for later
         self.pred_dirty: float = 0.001
         self.pred_clean: float = 0.001
         self.nr_dirty: int = 0
         self.nr_clean: int = 0
-        self.predisposition_decrease = predisposition_decrease
+        self.pred_decrease: float = 0.001
 
         # attributes set by model
         self.last_trade_success: bool = False
@@ -46,8 +40,9 @@ class Country(mg.GeoAgent):
         self.cost_dirty: float = 0.001
         self.cost_clean: float = 0.001
 
+
     def __repr__(self):
-        return f"Country: {self.unique_id}"
+        return str(self.unique_id)
 
     def step(self) -> None:
         """
@@ -60,15 +55,13 @@ class Country(mg.GeoAgent):
         self.calculate_welfare()
         self.calculate_mrs()
         self.reduce_pred()
-        self.kill_plant()
-
 
     def collect(self) -> None:
         """Collect energy and money from power plants and gdp influx.
         """
-        self.w_energy += self.nr_clean * self.pred_clean * self.output_single_clean \
-                                 + self.nr_dirty * self.pred_dirty * self.output_single_dirty
-        self.w_money += self.influx_money
+        self.wealth["energy"] += self.nr_clean * self.pred_clean \
+                                 + self.nr_dirty * self.pred_dirty
+        self.wealth["money"] += self.influx_money
 
     def invest(self) -> None:
         """
@@ -81,13 +74,10 @@ class Country(mg.GeoAgent):
         """
         # if cant afford any plant
 
-        # if self.cost_clean > self.w_money - 0.1 and self.cost_dirty > self.w_money - 0.1:
+        # if self.cost_clean > self.wealth["money"] - 0.1 and self.cost_dirty > self.wealth["money"] - 0.1:
         #     return
-
-        if self.cost_clean > self.w_money - (self.w_money * 0.3) \
-                and self.cost_dirty > self.w_money - (self.w_money * 0.3):
+        if self.cost_clean > self.wealth["money"] - (self.wealth["energy"]*0.3) and self.cost_dirty > self.wealth["money"] - self.wealth["money"]*0.3:
             return
-        # print("COST", self.cost_clean, self.w_money)
 
         build_d_welfare = self.would_be_welfare("dirty")
         build_c_welfare = self.would_be_welfare("clean")
@@ -95,36 +85,36 @@ class Country(mg.GeoAgent):
         trade_c_welfare = self.would_be_welfare("trade_m")
 
         options = [
-            [build_d_welfare, self.cost_dirty, "dirty"],
-            [build_c_welfare, self.cost_clean, "clean"],
-            [trade_d_welfare, 0, "trade"],
-            [trade_c_welfare, 0, "trade"] # TODO cost should not be 0
+            (build_d_welfare, self.cost_dirty, "dirty"),
+            (build_c_welfare, self.cost_clean, "clean"),
+            (trade_d_welfare, 0, "trade"),
+            (trade_c_welfare, 0, "trade"),
         ]
-        options = [x for x in options if not math.isnan(x[1])]
+        # print(options)
+
 
         # sort options by welfare
 
         options.sort(reverse=True, key=lambda x: x[0])
-        options = sorted(options, reverse=True, key= lambda x: x[0])
-        # print("Options", options)
         # choose first option we can afford
-        best = next((x for x in options if x[1] < self.w_money - (self.w_money * 0.3) and not math.isnan(x[1])),
-                    (trade_c_welfare, 0, "trade"))
+        best = next((x for x in options if x[1] < self.wealth["money"] - 0.3),
+                    (trade_c_welfare, 0, "clean", "trade"))
+
         if best[2] == "dirty" or best[2] == "clean":
-            # print(best[2])
+            #if best[2] == 'clean' and self.first_green_plant == 0:
+                #self.first_green_plant == timestep? ## HOW DO I GET THE TIME STEP?
             self.build_plant(best[2])
 
         # if last trade was not successful, but the best option was trade. Try to build the best plant we can.
-        # elif best[2] == "trade" and not self.last_trade_success:
-        #     # if there are any plants we can afford, build the one with the highest welfare
-        #     best_build = sorted((x for x in options
-        #                          if (x[2] == "dirty" or x[2] == "clean") and x[1] < self.w_money - (self.w_money * 0.3)),
-        #                         reverse=True, key=lambda x: x[0])
-        #     if best_build:
-        #         self.build_plant(best_build[0][2])
-        # else:
-        #     pass
-
+        elif best[2] == "trade" and not self.last_trade_success:
+            # if there are any plants we can afford, build the one with the highest welfare
+            best_build = sorted((x for x in options
+                                 if (x[2] == "dirty" or x[2] == "clean") and x[1] < self.wealth["money"] - 0.3),
+                                reverse=True, key=lambda x: x[0])
+            if best_build:
+                self.build_plant(best_build[0][2])
+        else:
+            pass
 
     def would_be_welfare(self, action: str) -> float:
         if action == "dirty":
@@ -133,32 +123,30 @@ class Country(mg.GeoAgent):
         elif action == "clean":
             add_energy = self.pred_clean * self.output_single_clean
             expected_market_cost = self.cost_clean
-        elif action == "trade_e": # TODO make sure right operations
-            # sell energy
-            add_energy = -0.1
-            expected_market_cost = 0.1 * self.last_trade_price_energy
+        elif action == "trade_e":
+            # sell money, buy energy
+            add_energy = 0.1 * self.last_trade_price_energy
+            expected_market_cost = 0.1
         elif action == "trade_m":
-            # sell money
-            add_energy = 0.1 / self.last_trade_price_energy
-            expected_market_cost = - 0.1
+            # sell energy, buy money
+            add_energy = 0.1
+            expected_market_cost = - 0.1 / self.last_trade_price_energy
         else:
             raise ValueError(
                 f"Variable action is {action} but can only take values 'dirty', 'clean', 'trade_e' or 'trade_m'.")
 
-        mt = np.add(self.m_energy, self.m_money)
-
-        return np.power(self.w_energy + self.produced_energy + add_energy, self.m_energy / mt) \
-               * np.power(self.w_money + expected_market_cost, self.m_money / mt)
+        mt = np.add(self.metabolism["energy"], self.metabolism["money"])
+        return np.power(self.wealth["energy"] + self.produced_energy + add_energy, self.metabolism["energy"] / mt)\
+               * np.power(self.wealth["money"] - expected_market_cost, self.metabolism["money"] / mt)
 
     def consume(self) -> None:
         """Use up energy and money"""
-        self.w_energy -= self.m_energy
-        self.w_money -= self.m_money * self.w_money
-        if self.w_energy < 0:
-            self.w_energy = 0.01
-        if self.w_money < 0:
-            self.w_money = 0.01
-
+        self.wealth['energy'] -= self.metabolism["energy"]
+        self.wealth['money'] -= self.metabolism["money"]
+        if self.wealth['energy'] < 0:
+            self.wealth['energy'] = 0.01
+        if self.wealth['money'] < 0:
+            self.wealth['money'] = 0.01
 
     def calculate_welfare(self) -> None:
         """
@@ -170,12 +158,12 @@ class Country(mg.GeoAgent):
         W(e,m) = (energy + production_from_plants) ^ (m1/mt) * (money + influx from gdp) ^ (m2/mt)
         """
 
-        mt = np.add(self.m_energy, self.m_money)
+        mt = np.add(self.wealth["energy"], self.wealth["money"])
 
-        w_energy = np.power(np.add(self.w_energy, self.produced_energy),
-                            np.divide(self.m_energy, mt))
-        w_money = np.power(np.add(self.w_money, self.influx_money),
-                           np.divide(self.m_money, mt))
+        w_energy = np.power(np.add(self.wealth['energy'], self.produced_energy),
+                            np.divide(self.metabolism["energy"], mt))
+        w_money = np.power(np.add(self.wealth["money"], self.influx_money),
+                           np.divide(self.metabolism["money"], mt))
 
         for i in [w_money, w_energy]:
             if isinstance(i, complex):
@@ -185,8 +173,8 @@ class Country(mg.GeoAgent):
 
     def calculate_mrs(self) -> None:
         """Calculate Marginal Rate of Substitution (MRS)."""
-        self.mrs = np.divide(np.multiply(np.add(self.w_energy, self.produced_energy), self.m_money),
-                             np.multiply(np.add(self.w_money, self.influx_money), self.m_energy))
+        self.mrs = np.divide(np.multiply(np.add(self.wealth['energy'], self.produced_energy), self.metabolism["money"]),
+                             np.multiply(np.add(self.wealth["money"], self.influx_money), self.metabolism["energy"]))
 
     def build_plant(self, type_plant: str):
         """
@@ -196,22 +184,17 @@ class Country(mg.GeoAgent):
         """
         if type_plant == "dirty":
             self.nr_dirty += 1
-            self.w_money -= self.cost_dirty
+            self.wealth["money"] -= self.cost_dirty
         elif type_plant == 'clean':
             self.nr_clean += 1
-            self.w_money -= self.cost_clean
+            self.wealth["money"] -= self.cost_clean
         else:
             raise ValueError(f"""{type_plant} is not a valid plant. Use the tag "dirty" or "clean".""")
-
-    def kill_plant(self):
-        for plant in [self.nr_dirty, self.nr_clean]:
-            if 0.5 > np.random.random() and plant > 0:
-                plant -= 1
 
     def reduce_pred(self):
         """
         Reduce predisposition of dirty power based on how many power plants consume it.
         """
-        self.pred_dirty -= self.nr_dirty * self.predisposition_decrease
+        self.pred_dirty -= self.nr_dirty * self.pred_decrease #0.0001
         if self.pred_dirty < 0:
             self.pred_dirty = 0
