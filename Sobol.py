@@ -9,6 +9,9 @@ import pandas as pd
 import geo_model
 from geo_model import *
 import numpy as np
+import time
+
+now = time.time()
 
 problem = {
     'num_vars': 8,
@@ -121,7 +124,7 @@ def plot_index(s, params, i, title=''):
     plt.yticks(range(l), params)
     plt.errorbar(indices, range(l), xerr=errors, linestyle='None', marker='o')
     plt.axvline(0, c='k')
-
+plt.figure()
 for Si in [S_i_welfare]:
     # First order
     plot_index(Si, problem['names'], '1', 'Welfare First order sensitivity')
@@ -131,7 +134,7 @@ for Si in [S_i_welfare]:
     #     plt.show()
     # Total order
     plot_index(Si, problem['names'], 'T', 'Welfare Total order sensitivity')
-    plt.show()
+    #plt.show()
 
 
 for S in [S_i_price]:
@@ -143,5 +146,6 @@ for S in [S_i_price]:
     #     plt.show()
     # Total order
     plot_index(S, problem['names'], 'T', 'Price Total order sensitivity')
-    plt.show()
-# # plt.figure()
+print(time.time() - now)
+plt.show()
+
