@@ -13,14 +13,14 @@ import time
 
 samples = pd.read_csv("Sobol_256.csv", index_col=0)
 # samples = samples[:51]      # PAUL
-# samples = samples[51:102]   # SOUVIK
+samples = samples[51:102]   # SOUVIK
 # samples = samples[102:153]  # TIJN
 # samples = samples[153:204]  # CONOR
 # samples = samples[204:]     # GAIA
 
 # TODO slice your region here before removing the KeyboardIntterupt
 
-raise KeyboardInterrupt
+#raise KeyboardInterrupt
 #just testing
 
 print(samples)
@@ -61,8 +61,8 @@ outputs2 = pd.DataFrame(data = avg_last_price,
 
 # TODO SAVE MY DATA BITTE
 
-outputs1.to_csv("paul1.csv")
-outputs2.to_csv("paul2.csv")
+outputs1.to_csv("Souvik1.csv")
+outputs2.to_csv("Souvik2.csv")
 
 
 raise KeyboardInterrupt
