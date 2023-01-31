@@ -16,11 +16,11 @@ samples = pd.read_csv("Sobol_256.csv")
 # samples = samples[51:102]   # SOUVIK
 # samples = samples[102:153]  # TIJN
 # samples = samples[153:204]  # CONOR
-# samples = samples[204:]     # GAIA
+samples = samples[204:]     # GAIA
 
 # TODO slice your region here before removing the KeyboardIntterupt
 
-raise KeyboardInterrupt
+#raise KeyboardInterrupt
 
 #just testing
 
@@ -37,13 +37,13 @@ for i in range(len(samples)):
                              metabolism_scalar_money= samples.iloc[i][5],
                              eta_global_trade= samples.iloc[i][6],
                              predisposition_decrease= samples.iloc[i][7])
-    new.run_model(10)
+    new.run_model(1000)
     nw1 = new.datacollector.get_agent_vars_dataframe()
     nw2 = new.datacollector.get_model_vars_dataframe()
 
     #nw2 = new.datacollector.get_model_vars_dataframe()
     df_by_country_welfare = nw1.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
-    df_by_country_price = nw2.pivot_table(values = 'Price', columns = 'AgentID', index = 'Price')
+  #  df_by_country_price = nw2.pivot_table(values = 'Price', columns = 'AgentID', index = 'Price')
     #print(df_by_country_price)
     #last_state = df_by_country.iloc[-1]
     avg_last_welfare.append(np.mean(df_by_country_welfare.iloc[-1]))
@@ -60,8 +60,8 @@ outputs2 = pd.DataFrame(data = avg_last_price,
 
 # TODO SAVE MY DATA BITTE
 
-outputs1.to_csv("my_name1.csv")
-outputs2.to_csv("my_name2.csv")
+outputs1.to_csv("gaia1.csv")
+outputs2.to_csv("gaia2.csv")
 
 
 raise KeyboardInterrupt
