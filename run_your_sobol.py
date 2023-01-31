@@ -6,22 +6,21 @@ import SALib
 from SALib.sample import saltelli, sobol
 from SALib.analyze import sobol
 import pandas as pd
-import geo_model
+import geo_model2
 from geo_model2 import *
 import numpy as np
 import time
 
-samples = pd.read_csv("Sobol_256.csv")
+samples = pd.read_csv("Sobol_256.csv", index_col=0)
 # samples = samples[:51]      # PAUL
-# samples = samples[51:102]   # SOUVIK
+samples = samples[51:102]   # SOUVIK
 # samples = samples[102:153]  # TIJN
 # samples = samples[153:204]  # CONOR
-samples = samples[204:]     # GAIA
+# samples = samples[204:]     # GAIA
 
 # TODO slice your region here before removing the KeyboardIntterupt
 
 #raise KeyboardInterrupt
-
 #just testing
 
 print(samples)
@@ -29,7 +28,7 @@ avg_last_welfare = []
 avg_last_price = []
 
 for i in range(len(samples)):
-    new = geo_model.GeoModel(cost_clean=samples.iloc[i][0],
+    new = geo_model2.GeoModel(cost_clean=samples.iloc[i][0],
                              cost_dirty=samples.iloc[i][1],
                              base_output_dirty=samples.iloc[i][2],
                              base_output_clean=samples.iloc[i][3],
@@ -40,11 +39,13 @@ for i in range(len(samples)):
     new.run_model(1000)
     nw1 = new.datacollector.get_agent_vars_dataframe()
     nw2 = new.datacollector.get_model_vars_dataframe()
+    # print(nw2)
 
     #nw2 = new.datacollector.get_model_vars_dataframe()
     df_by_country_welfare = nw1.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
-  #  df_by_country_price = nw2.pivot_table(values = 'Price', columns = 'AgentID', index = 'Price')
-    #print(df_by_country_price)
+    # df_by_country_price = nw2.pivot_table(values = 'Price', columns = 'AgentID', index = 'Step')
+
+    # print(df_by_country_price)
     #last_state = df_by_country.iloc[-1]
     avg_last_welfare.append(np.mean(df_by_country_welfare.iloc[-1]))
     avg_last_price.append(nw2.iloc[-1][0])
@@ -60,8 +61,8 @@ outputs2 = pd.DataFrame(data = avg_last_price,
 
 # TODO SAVE MY DATA BITTE
 
-outputs1.to_csv("gaia1.csv")
-outputs2.to_csv("gaia2.csv")
+outputs1.to_csv("Souvik1.csv")
+outputs2.to_csv("Souvik2.csv")
 
 
 raise KeyboardInterrupt
