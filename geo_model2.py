@@ -423,7 +423,7 @@ if __name__ == "__main__":
 
     now = time.time()
     new = GeoModel()
-    new.run_model(3000)
+    new.run_model(1000)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     # print(data)
