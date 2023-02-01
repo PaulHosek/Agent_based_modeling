@@ -43,6 +43,7 @@ class GeoModel(mesa.Model):
         self.space = mg.GeoSpace(crs="4326")
 
         # add countries to space
+
         ac = mg.AgentCreator(agent_class=country.Country, model=self)
         self.agents = ac.from_file("final_eu_countries.geojson", unique_id="NAME")
         self.space.add_agents(self.agents)
