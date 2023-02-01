@@ -7,7 +7,7 @@ os.environ['USE_PYGEOS'] = '0'
 import mesa_geo as mg
 import pandas as pd
 
-import country
+import country2
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats.mstats import gmean
@@ -187,7 +187,7 @@ class GeoModel(mesa.Model):
         self.step_nr += 1
 
         self.schedule.step()
-        self.trading_cycle()
+        self.trading_cycle(pareto_optimal = False)
 
         # def min_max(vals):
         #     min_val = min(vals)
@@ -356,6 +356,9 @@ class GeoModel(mesa.Model):
 
             # cur_country.model.price_record[cur_country.model.step_num].append(price)
             # cur_country.make_link(cur_neigh)
+
+    def pareto_optimal(self):
+
 
     def log_data(self) -> None:
         """
