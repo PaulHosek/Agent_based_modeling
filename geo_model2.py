@@ -15,7 +15,7 @@ import time
 
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=.5, cost_dirty=.2, base_output_dirty=0.6, base_output_clean=0.1,
+    def __init__(self, cost_clean=.3, cost_dirty=.2, base_output_dirty=0.1, base_output_clean=0.1,
                  metabolism_scalar_energy=1.5, metabolism_scalar_money=1, eta_global_trade=0.01,
                  predisposition_decrease=0.000_1, pareto_optimal=False):
 
@@ -195,8 +195,8 @@ class GeoModel(mesa.Model):
 
         self.schedule.step()
         self.trading_cycle()
-        # self.tax_dirty()
-        print(0.6*self.avg_pred_dirty)
+        #self.tax_dirty()
+        #print(0.6*self.avg_pred_dirty)
 
 
         # def min_max(vals):
@@ -357,7 +357,7 @@ class GeoModel(mesa.Model):
                         continue
 
                 # do transaction
-                cur_country.w_energy -= energy
+                cur_country.w_energy -= energy# =TODO add stochastic factor
                 cur_country.w_money += money
                 cur_neigh.w_money -= money
                 cur_neigh.w_energy += energy
@@ -483,7 +483,7 @@ if __name__ == "__main__":
 
     now = time.time()
     new = GeoModel()
-    new.run_model(1500)
+    new.run_model(300)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     # print(data)

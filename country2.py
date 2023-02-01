@@ -59,7 +59,7 @@ class Country(mg.GeoAgent):
         self.calculate_welfare()
         self.calculate_mrs()
         self.reduce_pred()
-        # self.kill_plant()
+        self.kill_plant()
         if self.w_energy > 100:
             self.w_energy = 100
 
@@ -89,8 +89,8 @@ class Country(mg.GeoAgent):
                 and self.cost_dirty > self.w_money - (self.w_money * 0.3):
             return
 
-        # if self.build_neighbour_plant():
-        #     return
+        if self.build_neighbour_plant():
+            return
 
         # print("COST", self.cost_clean, self.w_money)
 
@@ -155,6 +155,8 @@ class Country(mg.GeoAgent):
         best_neigh = all_neigh[0]
 
         influence = 1-(self.welfare/best_neigh.welfare) if best_neigh.welfare != 0 else 0
+        if influence < 0:
+            influence = 0
         if best_neigh.nr_dirty > best_neigh.nr_clean:
             plant = "dirty"
         elif best_neigh.nr_dirty < best_neigh.nr_clean:
