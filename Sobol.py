@@ -61,7 +61,7 @@ for i in range(len(samples)):
                              metabolism_scalar_money= samples.iloc[i][5],
                              eta_global_trade= samples.iloc[i][6],
                              predisposition_decrease= samples.iloc[i][7],)
-    new.run_model(10)
+    new.run_model(1000)
     nw1 = new.datacollector.get_agent_vars_dataframe()
     nw2 = new.datacollector.get_model_vars_dataframe()
 
