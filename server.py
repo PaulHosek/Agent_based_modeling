@@ -4,7 +4,7 @@ os.environ['USE_PYGEOS'] = '0'
 from mesa_geo.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import ChartModule, TextElement
 from mesa.visualization.UserParam import Slider
-from geo_model import GeoModel
+from geo_model2 import GeoModel
 from mesa_geo.visualization import MapModule
 
 import numpy as np
@@ -63,9 +63,9 @@ def nr_plants_draw(agent):
 
 
 
-map_width = 500
-map_height = 400
-# map_welfare = MapModule(welfare_draw, [57, 12], 3.5, map_width, map_height)
+map_width =600
+map_height = 500
+map_welfare = MapModule(welfare_draw, [57, 12], 3.5, map_width, map_height)
 map_plants = MapModule(nr_plants_draw, [57, 12], 3.5, map_width, map_height)
 avg_welfare = ChartModule([{"Label": 'var_price', "Color": "Green"},
                            {"Label": 'average_welfare', "Color": "Gold"}], 200, 500)
@@ -89,6 +89,6 @@ plant_chart = ChartModule([{"Label": 'avg_nr_dirty', "Color": "Tomato"},
 #     {"Label": 'member_eff', "Color": "RoyalBlue"},
 # ], 200, 500)
 
-server = ModularServer(GeoModel, [map_plants, plant_chart, avg_welfare], "EU Energy Model", model_params)
+server = ModularServer(GeoModel, [map_welfare, plant_chart, avg_welfare], "EU Energy Model", model_params)
 
 server.launch()

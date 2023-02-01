@@ -8,7 +8,7 @@ import math
 
 class Country(mg.GeoAgent):
     def __init__(self, unique_id, model, geometry, crs,
-                 m_energy=0.01, m_money=0.01, w_energy=0.01, w_money=0.01, predisposition_decrease=0.0001):
+                 m_energy=0.1, m_money=0.1, w_energy=0.01, w_money=0.01, predisposition_decrease=0.0001):
 
         """
         :param unique_id: Name of country
@@ -59,7 +59,10 @@ class Country(mg.GeoAgent):
         self.calculate_welfare()
         self.calculate_mrs()
         self.reduce_pred()
-        self.kill_plant()
+        # self.kill_plant()
+        if self.w_energy > 100:
+            self.w_energy = 100
+
 
     def collect(self) -> None:
         """Collect energy and money from power plants and gdp influx.
@@ -85,6 +88,10 @@ class Country(mg.GeoAgent):
         if self.cost_clean > self.w_money - (self.w_money * 0.3) \
                 and self.cost_dirty > self.w_money - (self.w_money * 0.3):
             return
+
+        # if self.build_neighbour_plant():
+        #     return
+
         # print("COST", self.cost_clean, self.w_money)
 
         build_d_welfare = self.would_be_welfare("dirty")
@@ -96,7 +103,7 @@ class Country(mg.GeoAgent):
             [build_d_welfare, self.cost_dirty, "dirty"],
             [build_c_welfare, self.cost_clean, "clean"],
             [trade_d_welfare, 0, "trade"],
-            [trade_c_welfare, 0, "trade"]  # TODO cost should not be 0
+            [trade_c_welfare, 0, "trade"]
         ]
         options = [x for x in options if not math.isnan(x[1])]
 
@@ -104,6 +111,13 @@ class Country(mg.GeoAgent):
 
         options.sort(reverse=True, key=lambda x: x[0])
         options = sorted(options, reverse=True, key=lambda x: x[0])
+
+
+
+
+        # build their plant
+        # skip the rest of the decisio
+
         # print("Options", options)
         # choose first option we can afford
         best = next((x for x in options if x[1] < self.w_money - (self.w_money * 0.3) and not math.isnan(x[1])),
@@ -122,8 +136,57 @@ class Country(mg.GeoAgent):
         #         self.build_plant(best_build[0][2])
         # else:
         #     pass
+    def build_neighbour_plant(self):
+        influence, their_plant = self.neighbour_influence()
+        if influence > np.random.uniform():
+            if their_plant == "clean" and self.cost_clean > self.w_money - (self.w_money * 0.3):
+                self.build_plant("clean")
+                return True
+            elif their_plant == "dirty" and self.cost_dirty > self.w_money - (self.w_money * 0.3):
+                self.build_plant("dirty")
+                return True
+        return False
 
-    def would_be_welfare(self, action: str) -> float:
+    def neighbour_influence(self):
+
+        all_neigh = sorted(self.model.space.get_neighbors(self), key=lambda x: x.welfare, reverse=True)
+        if not all_neigh:
+            return 0, ""
+        best_neigh = all_neigh[0]
+
+        influence = 1-(self.welfare/best_neigh.welfare) if best_neigh.welfare != 0 else 0
+        if best_neigh.nr_dirty > best_neigh.nr_clean:
+            plant = "dirty"
+        elif best_neigh.nr_dirty < best_neigh.nr_clean:
+            plant = "clean"
+
+        # if equal then try to make own plants equal too
+        else:
+            if self.nr_clean < self.nr_dirty:
+                plant = "clean"
+            elif self.nr_dirty < self.nr_clean:
+                plant = "dirty"
+            else:
+                return 0, ""
+
+        return influence, plant
+
+
+        # calculate dominant plant
+        # calculate 1-my_welfare/their_welfare => influence factor
+        # return influence_factor, plant
+
+    # if influnce_factor > np.random.uniform() and if can afford:
+            # build their plant
+            # skip the rest of the decision
+
+
+
+
+
+        # test if my is larger then break or sth
+
+    def would_be_welfare(self, action: str, trading_quantity = 0.1) -> float:
         if action == "dirty":
             add_energy = self.pred_dirty * self.output_single_dirty
             expected_market_cost = self.cost_dirty
@@ -132,12 +195,12 @@ class Country(mg.GeoAgent):
             expected_market_cost = self.cost_clean
         elif action == "trade_e":  # TODO make sure right operations
             # sell energy
-            add_energy = -0.1
-            expected_market_cost = 0.1 * self.last_trade_price_energy
+            add_energy = -trading_quantity
+            expected_market_cost = trading_quantity * self.last_trade_price_energy
         elif action == "trade_m":
             # sell money
-            add_energy = 0.1 / self.last_trade_price_energy
-            expected_market_cost = - 0.1
+            add_energy = trading_quantity / self.last_trade_price_energy
+            expected_market_cost = - trading_quantity
         else:
             raise ValueError(
                 f"Variable action is {action} but can only take values 'dirty', 'clean', 'trade_e' or 'trade_m'.")
@@ -200,9 +263,11 @@ class Country(mg.GeoAgent):
             raise ValueError(f"""{type_plant} is not a valid plant. Use the tag "dirty" or "clean".""")
 
     def kill_plant(self):
-        for plant in [self.nr_dirty, self.nr_clean]:
-            if 0.5 > np.random.random() and plant > 0:
-                plant -= 1
+        # for plant in [self.nr_dirty, self.nr_clean]:
+        if 0.2 > np.random.random() and self.nr_dirty > 0:
+            self.nr_dirty -= 1
+        if 0.2 > np.random.random() and self.nr_clean > 0:
+            self.nr_clean -= 1
 
     def reduce_pred(self):
         """

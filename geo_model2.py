@@ -15,19 +15,15 @@ import time
 
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=0.3, cost_dirty=0.1, base_output_dirty=0.7, base_output_clean=0.2,
-                 metabolism_scalar_energy=1, metabolism_scalar_money=.2, eta_global_trade=0.01, predisposition_decrease= 0.0000001):
+    def __init__(self, cost_clean=.5, cost_dirty=.2, base_output_dirty=0.6, base_output_clean=0.1,
+                 metabolism_scalar_energy=1.5, metabolism_scalar_money=1, eta_global_trade=0.01,
+                 predisposition_decrease=0.000_1, pareto_optimal=False):
+
         # initialise global model parameters
         self.step_nr = 0
         self.schedule = mesa.time.RandomActivation(self)
-        self.average_welfare = 0.01
-        self.average_price = 0
-        self.var_price = 0
-        self.avg_pred_dirty = 0.5
-        self.avg_pred_clean = 0.5
-        self.avg_nr_dirty = 0
-        self.avg_nr_clean = 0
-        self.trading_volume = 0
+
+        # trackers
         self.gini = 0
         self.prop_clean = 0
         self.more_clean = 0
@@ -36,8 +32,19 @@ class GeoModel(mesa.Model):
         self.dom = ''
         self.clean_overtake = 0
         self.var_welfare = 0
+        self.average_welfare = 0.01
+        self.average_price = 0
+        self.var_price = 0
+        self.avg_pred_dirty = 0.5
+        self.avg_pred_clean = 0.5
+        self.avg_nr_dirty = 0
+        self.avg_nr_clean = 0
+        self.trading_volume = 0
+
+        self.quantitiy_max_traded = 0.01
         # P(trade with everyone)
         self.eta_trading = eta_global_trade
+        self.pareto_optimal = pareto_optimal
 
         # initialise space
         self.space = mg.GeoSpace(crs="4326")
@@ -159,7 +166,7 @@ class GeoModel(mesa.Model):
 
     def init_random(self):
         rng = np.random.default_rng()
-        rands = np.random.uniform(low=0.01, size=len(self.agents)*8)
+        rands = np.random.uniform(low=0.01, size=len(self.agents) * 8)
         rands = rands.reshape((8, len(self.agents)))
         for i, agent in enumerate(self.agents):
             self.schedule.add(agent)
@@ -175,7 +182,6 @@ class GeoModel(mesa.Model):
             agent.calculate_welfare()
             agent.calculate_mrs()
 
-
     def run_model(self, nr_steps) -> None:
         """Run model for n steps."""
         for i in range(nr_steps):
@@ -188,7 +194,10 @@ class GeoModel(mesa.Model):
         self.step_nr += 1
 
         self.schedule.step()
-        self.trading_cycle(pareto_optimal = False)
+        self.trading_cycle()
+        # self.tax_dirty()
+        print(0.6*self.avg_pred_dirty)
+
 
         # def min_max(vals):
         #     min_val = min(vals)
@@ -247,7 +256,7 @@ class GeoModel(mesa.Model):
                     raise ValueError(f"Price {price} is nan.")
 
             # do trades
-            if cur_neigh.mrs < cur_country.mrs:
+            if cur_neigh.mrs > cur_country.mrs:
 
                 # calculate how much wealth exceeds the buffer
                 # no trade if no buffer (0.3 energy)
@@ -265,21 +274,21 @@ class GeoModel(mesa.Model):
                 # 0.3 the min level money and energy allowed
 
                 # if have less than 0.1 energy/money more than the buffer, trade everything up to buffer
-                if 0.1 > energy_left and energy_left < money_left:
+                if self.quantitiy_max_traded > energy_left and energy_left < money_left:
                     energy = energy_left
                     money = price * energy_left
-                elif 0.1 > money_left and money_left < energy_left:
+                elif self.quantitiy_max_traded > money_left and money_left < energy_left:
                     energy = price * money_left
                     money = 1 * money_left
 
                 # else trade 0.1 energy
                 else:
                     if price > 1:
-                        energy = 0.1
-                        money = 0.1 * price
+                        energy = self.quantitiy_max_traded
+                        money = self.quantitiy_max_traded * price
                     else:
-                        energy = 0.1 / price
-                        money = 0.1
+                        energy = self.quantitiy_max_traded / price
+                        money = self.quantitiy_max_traded
 
                 if energy_left < energy or money_left < money:
                     cur_country.last_trade_success = False
@@ -287,6 +296,11 @@ class GeoModel(mesa.Model):
                     cur_country.last_trade_price_energy = 0.0001
                     cur_neigh.last_trade_price_energy = 0.0001
                     continue
+
+                if self.pareto_optimal:
+                    if not self.pareto_optimality(cur_country, cur_neigh, money, energy):
+                        continue
+
 
                 # do transaction
                 cur_country.w_energy += energy
@@ -315,21 +329,21 @@ class GeoModel(mesa.Model):
                 # 0.3 the min level money and energy allowed
 
                 # if have less than 0.1 energy/money more than the buffer, trade everything up to buffer
-                if 0.1 > energy_left and energy_left < money_left:
+                if self.quantitiy_max_traded > energy_left and energy_left < money_left:
                     energy = energy_left
                     money = price * energy_left
-                elif 0.1 > money_left and money_left < energy_left:
+                elif self.quantitiy_max_traded > money_left and money_left < energy_left:
                     energy = price * money_left
                     money = 1 * money_left
 
                 # else trade 0.1 energy
                 else:
                     if price > 1:
-                        energy = 0.1
-                        money = 0.1 * price
+                        energy = self.quantitiy_max_traded
+                        money = self.quantitiy_max_traded * price
                     else:
-                        energy = 0.1 / price
-                        money = 0.1
+                        energy = self.quantitiy_max_traded / price
+                        money = self.quantitiy_max_traded
 
                 if energy_left < energy or money_left < money:
                     cur_country.last_trade_success = False
@@ -337,6 +351,10 @@ class GeoModel(mesa.Model):
                     cur_country.last_trade_price_energy = 0.0001
                     cur_neigh.last_trade_price_energy = 0.0001
                     continue
+
+                if self.pareto_optimal:
+                    if not self.pareto_optimality(cur_neigh, cur_country, money, energy):
+                        continue
 
                 # do transaction
                 cur_country.w_energy -= energy
@@ -357,9 +375,47 @@ class GeoModel(mesa.Model):
 
             # cur_country.model.price_record[cur_country.model.step_num].append(price)
             # cur_country.make_link(cur_neigh)
+    @staticmethod
+    def pareto_optimality(buying_c, selling_c, money, energy):
+        """Test if a trade will be pareto optimal."""
 
-    def pareto_optimal(self):
+        # buying country = gets energy
 
+        mt = np.add(buying_c.m_energy, buying_c.m_money)
+
+        new_welfare_b = np.power(buying_c.w_energy + buying_c.produced_energy + energy,
+                                 buying_c.m_energy / mt) * np.power(buying_c.w_money - money, buying_c.m_money / mt)
+
+        mt = np.add(selling_c.m_energy, selling_c.m_money)
+        new_welfare_s = np.power(selling_c.w_energy + selling_c.produced_energy - energy,
+                                 selling_c.m_energy / mt) * np.power(selling_c.w_money + money, selling_c.m_money / mt)
+
+        print(new_welfare_b, buying_c.welfare, new_welfare_s, selling_c.welfare)
+        if new_welfare_b < buying_c.welfare or new_welfare_s < selling_c.welfare:
+            return False
+        else:
+            return True
+
+        # mt = np.add(self.m_energy, self.m_money)
+        # 
+        # return np.power(self.w_energy + self.produced_energy + add_energy, self.m_energy / mt) \
+        #        * np.power(self.w_money + expected_market_cost, self.m_money / mt)
+
+    def tax_dirty(self):
+
+        for agent in self.agents:
+            clean_plant_nr = agent.nr_clean
+            if agent.nr_clean <1:
+                clean_plant_nr = 1
+            ratio = agent.nr_dirty/clean_plant_nr
+
+            if ratio > 1 and ratio < 2:
+                agent.w_money -= agent.w_money * (ratio-1)*0.3
+            elif ratio > 2:
+                agent.w_money -= agent.w_money * 0.3
+
+            # find what ratio is
+            # if ratio is too high, punish
 
     def log_data(self) -> None:
         """
@@ -394,7 +450,7 @@ class GeoModel(mesa.Model):
         self.gini = gini_coef(welfares_list)
 
         if total_nr_clean != 0 and total_nr_dirty != 0:
-            self.prop_clean = total_nr_clean/(total_nr_dirty+total_nr_clean)
+            self.prop_clean = total_nr_clean / (total_nr_dirty + total_nr_clean)
 
         self.timestep += 1
         if total_nr_clean > total_nr_dirty:
@@ -427,34 +483,48 @@ if __name__ == "__main__":
 
     now = time.time()
     new = GeoModel()
-    new.run_model(1000)
+    new.run_model(1500)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     # print(data)
     a_data = new.datacollector.get_agent_vars_dataframe()
-    df_by_country_m = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
-    df_by_country_e = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
+    df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
+    df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
     # df_by_country_e = a_data.pivot_table(values = 'w_money', columns = 'AgentID', index = 'Step')
     # print("Welfare")
     # print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
     # print("w_energy")
     # print(df_by_country_e)
+
     plt.figure()
-    # plt.plot(df_by_country_m, color='green')
-    plt.plot(df_by_country_e, color='red')
+    plt.title("energy")
+    plt.plot(df_by_country_e, color='red', alpha =0.3)
     plt.show()
 
     plt.figure()
-    # plt.plot(df_by_country_m, color='green')
-    plt.title("var welfare")
-    plt.plot(data["var_welfare"])
+    plt.ylabel("Money")
+    plt.xlabel("Timesteps, t")
+    plt.plot(df_by_country_m, color='green', alpha=0.3)
+    plt.show()
+
+    # plot welfare
+    plt.figure()
+    plt.xlabel("Timesteps, t")
+    plt.ylabel("Welfare, W")
+    plt.plot(data["Welfare"])
     plt.show()
 
     plt.figure()
-    plt.title("trading volume")
-    # plt.plot(df_by_country_m, color='green')
-    plt.plot(data["Trading_volume"])
+    plt.xlabel("Timesteps, t")
+    plt.ylabel("Average Price (1 E/m)")
+    plt.plot(data["Price"])
     plt.show()
+
+    # plt.figure()
+    # plt.title("trading volume")
+    # # plt.plot(df_by_country_m, color='green')
+    # plt.plot(data["Trading_volume"])
+    # plt.show()
 
     # print()
     # print("Welfare by country\n")
@@ -465,15 +535,19 @@ if __name__ == "__main__":
     # plt.plot(a_data.pivot_table(values='w_energy', columns='AgentID', index='Step'), color='red', label='energy')
     # plt.plot(a_data.pivot_table(values='w_money', columns='AgentID', index='Step'), color='green', label='money')
     # plt.show()
-    print("WELFARE MAX")
-    my_pivot = a_data.pivot_table(values='Welfare', columns='AgentID', index='Step')
-    print(my_pivot.max())
-
-    plt.figure()
-    plt.title("welfare per country")
-    plt.plot(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
-
-    plt.show()
+    # print("WELFARE MAX")
+    # my_pivot = a_data.pivot_table(values='Welfare', columns='AgentID', index='Step')
+    # print(my_pivot.max())
+    #
+    # plt.figure()
+    # plt.title("welfare per country")
+    # plt.plot(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
+    #
+    # plt.show()
+    # plt.figure()
+    # plt.title("trading vol")
+    # plt.plot(data["Trading_volume"])
+    # plt.figure()
 
     # last_state = df_by_country.iloc[-1]
     # and
@@ -482,8 +556,11 @@ if __name__ == "__main__":
     # plt.plot(data["Pred_dirty"])
     # plt.plot(df_by_country)
     plt.figure()
-    plt.plot(data["nr_dirty"], color='brown')
-    plt.plot(data["nr_clean"], color='green')
+    plt.ylabel("Number plants")
+    plt.xlabel("Timesteps, t")
+    plt.plot(data["nr_dirty"], color='brown', label="dirty")
+    plt.plot(data["nr_clean"], color='green', label="clean")
+    plt.legend()
     plt.show()
     # plt.semilogy(data["Price"][10:])
     # plt.plot(data["Welfare"][10:])
