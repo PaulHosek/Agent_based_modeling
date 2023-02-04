@@ -13,15 +13,19 @@ import matplotlib.pyplot as plt
 from scipy.stats.mstats import gmean
 import time
 
+seed = 18775
+
+np.random.seed(seed)
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=.5, cost_dirty=.2, base_output_dirty=0.6, base_output_clean=0.1,
+    def __init__(self, cost_clean=.4, cost_dirty=.2, base_output_dirty=0.4, base_output_clean=0.2,
                  metabolism_scalar_energy=1.5, metabolism_scalar_money=1, eta_global_trade=0.01,
-                 predisposition_decrease=0.000_1, pareto_optimal=False):
+                 predisposition_decrease=0.000_01, pareto_optimal=False, seed = seed):
 
         # initialise global model parameters
         self.step_nr = 0
         self.schedule = mesa.time.RandomActivation(self)
+        self.seed = seed
 
         # trackers
         self.gini = 0
@@ -41,7 +45,7 @@ class GeoModel(mesa.Model):
         self.avg_nr_clean = 0
         self.trading_volume = 0
 
-        self.quantitiy_max_traded = 0.01
+        self.quantitiy_max_traded = 0.001
         # P(trade with everyone)
         self.eta_trading = eta_global_trade
         self.pareto_optimal = pareto_optimal
@@ -67,9 +71,12 @@ class GeoModel(mesa.Model):
             agent.output_single_clean: float = float(base_output_clean)
             agent.predisposition_decrease = predisposition_decrease
 
-        self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Price": 'average_price',
+        self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Gini_welfare": 'gini',
+                                                                                "clustering_coef":"clustering_coef",
+
+
+                                                                                "Price": 'average_price',
                                                                                 "Welfare": 'average_welfare',
-                                                                                "Gini": 'gini',
 
                                                                                 "avg_nr_dirty": 'avg_nr_dirty',
                                                                                 "avg_nr_clean": 'avg_nr_clean',
@@ -92,7 +99,10 @@ class GeoModel(mesa.Model):
                                                                                 "nr_clean": "nr_clean",
                                                                                 "w_energy": "w_energy",
                                                                                 "w_money": "w_money"})
-        # self.load_countries()
+
+
+
+
         self.init_random()
 
         self.log_data()
@@ -109,8 +119,8 @@ class GeoModel(mesa.Model):
         pred_cleans = np.empty(len(self.agents))
 
         # print(rands)
-        rands1 = np.random.uniform(low=0.01, size=len(self.agents))
-        rands2 = np.random.uniform(low=0.01, size=len(self.agents))
+        rands1 = np.random.default_rng(self.seed+10).uniform(low=0.01, size=len(self.agents))
+        rands2 = np.random.default_rng(self.seed+11).uniform(low=0.01, size=len(self.agents))
 
         data = pd.read_csv("energy_model_v2.csv", sep=",")
         for i, agent in enumerate(self.agents):
@@ -132,8 +142,8 @@ class GeoModel(mesa.Model):
             agent.m_money = agent_data.at[0, "Percentage_GDP_expenditure"] * \
                             agent_data.at[0, "gdp_influx"] * self.metab_m_scalar
 
-            agent.w_money = np.random.uniform(low=0.01, high=agent.influx_money)
-            agent.w_energy = np.random.uniform(low=0.01, high=agent.influx_money)
+            agent.w_money = np.random.default_rng(self.seed+1).uniform(low=0.01, high=agent.influx_money)
+            agent.w_energy = np.random.default_rng(self.seed+2).uniform(low=0.01, high=agent.influx_money)
 
             # new
             # agent.w_energy = rands[i]
@@ -165,8 +175,7 @@ class GeoModel(mesa.Model):
         # plt.show()
 
     def init_random(self):
-        rng = np.random.default_rng()
-        rands = np.random.uniform(low=0.01, size=len(self.agents) * 8)
+        rands = np.random.default_rng(self.seed+3).uniform(low=0.01, size=len(self.agents) * 8)
         rands = rands.reshape((8, len(self.agents)))
         for i, agent in enumerate(self.agents):
             self.schedule.add(agent)
@@ -221,15 +230,14 @@ class GeoModel(mesa.Model):
         """
 
         def fast_choice(input_list):
-            return input_list[np.random.randint(0, len(input_list))]
+            return input_list[np.random.default_rng(self.seed+5).integers(0, len(input_list))]
 
         all_countries = self.agents
-        rng = np.random.default_rng()
 
         for cur_country in all_countries:
 
             # trade with everyone with probability eta
-            if self.eta_trading > rng.random():
+            if self.eta_trading > np.random.default_rng(self.seed+6).random():
                 all_neighs: list = self.space.get_neighbors(cur_country)
             else:
                 all_neighs: list = self.agents
@@ -483,7 +491,7 @@ if __name__ == "__main__":
 
     now = time.time()
     new = GeoModel()
-    new.run_model(1500)
+    new.run_model(150)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     # print(data)
@@ -492,20 +500,22 @@ if __name__ == "__main__":
     df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
     # df_by_country_e = a_data.pivot_table(values = 'w_money', columns = 'AgentID', index = 'Step')
     # print("Welfare")
-    # print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
+    print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
     # print("w_energy")
     # print(df_by_country_e)
+    a_data["Welfare"].to_csv("Welfare_per_country.csv")
 
-    plt.figure()
-    plt.title("energy")
-    plt.plot(df_by_country_e, color='red', alpha =0.3)
-    plt.show()
 
-    plt.figure()
-    plt.ylabel("Money")
-    plt.xlabel("Timesteps, t")
-    plt.plot(df_by_country_m, color='green', alpha=0.3)
-    plt.show()
+    # plt.figure()
+    # plt.title("energy")
+    # plt.plot(df_by_country_e, color='red', alpha =0.3)
+    # plt.show()
+    #
+    # plt.figure()
+    # plt.ylabel("Money")
+    # plt.xlabel("Timesteps, t")
+    # plt.plot(df_by_country_m, color='green', alpha=0.3)
+    # plt.show()
 
     # plot welfare
     plt.figure()
@@ -513,12 +523,13 @@ if __name__ == "__main__":
     plt.ylabel("Welfare, W")
     plt.plot(data["Welfare"])
     plt.show()
+    # data["Welfare"].to_csv("w_noni")
 
-    plt.figure()
-    plt.xlabel("Timesteps, t")
-    plt.ylabel("Average Price (1 E/m)")
-    plt.plot(data["Price"])
-    plt.show()
+    # plt.figure()
+    # plt.xlabel("Timesteps, t")
+    # plt.ylabel("Average Price (1 E/m)")
+    # plt.plot(data["Price"])
+    # plt.show()
 
     # plt.figure()
     # plt.title("trading volume")
@@ -545,9 +556,11 @@ if __name__ == "__main__":
     #
     # plt.show()
     # plt.figure()
-    # plt.title("trading vol")
+    # plt.ylabel("Trading volume, #trades/t")
+    # plt.xlabel("Timesteps, t")
     # plt.plot(data["Trading_volume"])
-    # plt.figure()
+    # plt.show()
+    # data["Trading_volume"].to_csv("trading_vol.csv")
 
     # last_state = df_by_country.iloc[-1]
     # and

@@ -44,6 +44,8 @@ class Country(mg.GeoAgent):
         self.output_single_clean: float = 0.001
         self.cost_dirty: float = 0.001
         self.cost_clean: float = 0.001
+        np.random.seed = self.model.seed
+        self.seed = self.model.seed
 
     def __repr__(self):
         return f"Country: {self.unique_id}"
@@ -59,7 +61,7 @@ class Country(mg.GeoAgent):
         self.calculate_welfare()
         self.calculate_mrs()
         self.reduce_pred()
-        # self.kill_plant()
+        self.kill_plant()
         if self.w_energy > 100:
             self.w_energy = 100
 
@@ -138,7 +140,7 @@ class Country(mg.GeoAgent):
         #     pass
     def build_neighbour_plant(self):
         influence, their_plant = self.neighbour_influence()
-        if influence > np.random.uniform():
+        if influence > np.random.default_rng(self.seed+21).uniform():
             if their_plant == "clean" and self.cost_clean > self.w_money - (self.w_money * 0.3):
                 self.build_plant("clean")
                 return True
@@ -264,9 +266,9 @@ class Country(mg.GeoAgent):
 
     def kill_plant(self):
         # for plant in [self.nr_dirty, self.nr_clean]:
-        if 0.2 > np.random.random() and self.nr_dirty > 0:
+        if 0.2 > np.random.default_rng(self.seed+22).random() and self.nr_dirty > 0:
             self.nr_dirty -= 1
-        if 0.2 > np.random.random() and self.nr_clean > 0:
+        if 0.2 > np.random.default_rng(self.seed+23).random() and self.nr_clean > 0:
             self.nr_clean -= 1
 
     def reduce_pred(self):
