@@ -125,7 +125,7 @@ class GeoModel(mesa.Model):
         adoption_dict = dict()
 
         for idx, agent in enumerate(self.agents):
-            adoption_dict[agent.unique_id] = agent.welfare
+            adoption_dict[agent.unique_id] = network_analysis.euclidian_similarity(agent.nr_clean, agent.nr_dirty)
             welfares_list[idx] = agent.welfare
 
             total_welfare += agent.welfare

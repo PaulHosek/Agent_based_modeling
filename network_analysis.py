@@ -86,12 +86,11 @@ def import_eu_graph():
 def similarity_weighting(eu_graph, adoption_dict):
     """Compute similarity and add as weights to graph."""
 
-    def euclidian_similarity(a, b):
-        """Symmetric similarity measure based on euclidean distance."""
-        return 1 - np.linalg.norm(a - b)
-
     borders = eu_graph.edges
     for country_a, country_b in borders:
         weight = euclidian_similarity(adoption_dict[country_a], adoption_dict[country_b])
         eu_graph.add_edge(country_a, country_b, weight=weight)
     return eu_graph
+def euclidian_similarity(a, b):
+    """Symmetric similarity measure based on euclidean distance."""
+    return 1 - np.linalg.norm(a - b)
