@@ -1,13 +1,9 @@
 from itertools import combinations
 
-import matplotlib.pyplot as plt
-from IPython.display import clear_output
-import SALib
-from SALib.sample import saltelli, sobol
+from SALib.sample import saltelli
 from SALib.analyze import sobol
-import pandas as pd
-import geo_model
-from geo_model import *
+from trash import geo_model
+from trash.geo_model import *
 import numpy as np
 import time
 
@@ -60,7 +56,7 @@ for i in range(len(samples)):
                              metabolism_scalar_energy= samples.iloc[i][4],
                              metabolism_scalar_money= samples.iloc[i][5],
                              eta_global_trade= samples.iloc[i][6],
-                             predisposition_decrease= samples.iloc[i][7],)
+                             predisposition_decrease= samples.iloc[i][7], )
     new.run_model(1000)
     nw1 = new.datacollector.get_agent_vars_dataframe()
     nw2 = new.datacollector.get_model_vars_dataframe()

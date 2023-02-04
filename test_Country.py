@@ -1,7 +1,6 @@
 import unittest
-import mesa_geo as mg
-from country import Country
-import geo_model
+from trash.country import Country
+from trash import geo_model
 
 
 class TestCountry(unittest.TestCase):

@@ -1,7 +1,4 @@
-import mesa
 import mesa_geo as mg
-import typing
-import geo_model
 import numpy as np
 import math
 
@@ -18,7 +15,6 @@ class Country(mg.GeoAgent):
         super().__init__(unique_id, model, geometry, crs)
 
         # statistics
-        self.name: str = 'na'
         self.welfare: float = 0.001
         self.mrs: float = 0.001
 
@@ -174,7 +170,6 @@ class Country(mg.GeoAgent):
                 f"Variable action is {action} but can only take values 'dirty', 'clean', 'trade_e' or 'trade_m'.")
 
         mt = np.add(self.m_energy, self.m_money)
-
         return np.power(self.w_energy + self.produced_energy + add_energy, self.m_energy / mt) \
                * np.power(self.w_money + expected_market_cost, self.m_money / mt)
 

@@ -1,12 +1,10 @@
 from itertools import combinations
 
 import matplotlib.pyplot as plt
-from IPython.display import clear_output
-import SALib
-from SALib.sample import saltelli, sobol
+from SALib.sample import saltelli
 from SALib.analyze import sobol
 import pandas as pd
-import geo_model
+from trash import geo_model
 import numpy as np
 
 
@@ -55,7 +53,7 @@ for i in range(len(samples)):
                              metabolism_scalar_energy= samples.iloc[i][4],
                              metabolism_scalar_money= samples.iloc[i][5],
                              eta_global_trade= samples.iloc[i][6],
-                             predisposition_decrease= samples.iloc[i][7],)
+                             predisposition_decrease= samples.iloc[i][7], )
 
     nw = new.datacollector.get_agent_vars_dataframe()
     df_by_country = nw.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')

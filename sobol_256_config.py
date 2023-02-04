@@ -1,13 +1,7 @@
 from itertools import combinations
 
-import matplotlib.pyplot as plt
-from IPython.display import clear_output
-import SALib
-from SALib.sample import saltelli, sobol
-from SALib.analyze import sobol
-import pandas as pd
-import geo_model
-from geo_model import *
+from SALib.sample import saltelli
+from trash.geo_model import *
 import numpy as np
 import time
 

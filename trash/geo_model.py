@@ -104,7 +104,7 @@ class GeoModel(mesa.Model):
         rands1 = np.random.uniform(low=0.01, size=len(self.agents))
         rands2 = np.random.uniform(low=0.01, size=len(self.agents))
 
-        data = pd.read_csv("energy_model_v2.csv", sep=",")
+        data = pd.read_csv("../energy_model_v2.csv", sep=",")
         for i, agent in enumerate(self.agents):
             self.schedule.add(agent)
             agent_data = data.loc[data['Country'] == agent.unique_id].reset_index()

@@ -1,9 +1,7 @@
 import unittest
 import mesa
 import mesa_geo as mg
-from country import Country
-import geo_model
-import country
+from trash import country, geo_model
 
 
 class TestGeoModel(unittest.TestCase):

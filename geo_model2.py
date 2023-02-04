@@ -12,16 +12,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats.mstats import gmean
 import time
+import network_analysis
 
-
-seed = 18775
+seed = 187758
 
 np.random.seed(seed)
+
 
 class GeoModel(mesa.Model):
     def __init__(self, cost_clean=.4, cost_dirty=.2, base_output_dirty=0.4, base_output_clean=0.2,
                  metabolism_scalar_energy=1.5, metabolism_scalar_money=1, eta_global_trade=0.01,
-                 predisposition_decrease=0.000_01, pareto_optimal=False, seed = seed):
+                 predisposition_decrease=0.000_01, pareto_optimal=False, seed=seed):
         self.seed = seed
 
         # initialise space and add countries
@@ -31,7 +32,6 @@ class GeoModel(mesa.Model):
         self.space.add_agents(self.agents)
         # initialise global model parameters
         self.schedule = mesa.time.RandomActivation(self)
-
 
         # Trackers
         self.gini = 0
@@ -52,7 +52,7 @@ class GeoModel(mesa.Model):
         self.trading_volume = 0
         self.max_steps = 0
         self.step_nr = 0
-
+        self.modularity = 0
 
         # parameters
         self.quantitiy_max_traded = 0.001
@@ -70,8 +70,7 @@ class GeoModel(mesa.Model):
             agent.predisposition_decrease = predisposition_decrease
 
         self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Gini_welfare": 'gini',
-                                                                                "modularity_ga":"modularity_ga",
-
+                                                                                "modularity_ga": "modularity",
 
                                                                                 "Price": 'average_price',
                                                                                 "Welfare": 'average_welfare',
@@ -93,7 +92,7 @@ class GeoModel(mesa.Model):
                                                                                 "var_welfare": "var_welfare",
                                                                                 "Pred_dirty": 'avg_pred_dirty'},
                                                                agent_reporters={"Welfare": "welfare",
-                                                                                "Clean_adoption":"clean_adoption",
+                                                                                "Clean_adoption": "clean_adoption",
                                                                                 "nr_dirty": "nr_dirty",
                                                                                 "nr_clean": "nr_clean",
                                                                                 "w_energy": "w_energy",
@@ -101,75 +100,77 @@ class GeoModel(mesa.Model):
         self.init_random()
         self.log_data()
 
-    def load_countries(self):
+    def log_data(self) -> None:
         """
-        Initialise the country and fill the attributes from csv.
-        All values have been sourced from real data and scaled into [0,1] using min-max scaling.
-        Only "Percentage_GDP_expenditure" was not altered.
-
+        Compute average values, statistics of the system and self in class attributes (e.g., self.avg_energy).
+        Will feed to datacollector later.
         :return: None
         """
-        pred_dirties = np.empty(len(self.agents))
-        pred_cleans = np.empty(len(self.agents))
 
-        # print(rands)
-        rands1 = np.random.default_rng(self.seed+10).uniform(low=0.01, size=len(self.agents))
-        rands2 = np.random.default_rng(self.seed+11).uniform(low=0.01, size=len(self.agents))
+        def gini_coef(x):
+            x = np.asarray(x)
+            sorted_x = np.sort(x)
+            n = len(x)
+            cumx = np.cumsum(sorted_x, dtype=float)
+            return (n + 1 - 2 * np.sum(cumx) / cumx[-1]) / n
 
-        data = pd.read_csv("energy_model_v2.csv", sep=",")
-        for i, agent in enumerate(self.agents):
-            self.schedule.add(agent)
-            agent_data = data.loc[data['Country'] == agent.unique_id].reset_index()
+        # compute statistics of the step here
+        nr_agents = len(self.agents)
+        total_welfare = 0
+        prices = np.empty(nr_agents)
+        pred_dirty = 0
+        total_nr_dirty = 0
+        total_nr_clean = 0
+        welfares_list = np.empty(nr_agents)
+        adoption_dict = dict()
 
-            # effective power plant output
-            agent.pred_dirty = float(agent_data.at[0, "pred_dirty"])
-            agent.pred_clean = float(agent_data.at[0, "pred_clean"])
+        for idx, agent in enumerate(self.agents):
+            adoption_dict[agent.unique_id] = agent.welfare
+            welfares_list[idx] = agent.welfare
 
-            pred_dirties[i] = float(agent_data.at[0, "pred_dirty"]) * 10
-            pred_cleans[i] = float(agent_data.at[0, "pred_clean"]) * 10
-            # energy
-            agent.m_energy = agent_data.at[0, "energy_demand"] * \
-                             self.metab_e_scalar
-            # money
-            agent.influx_money = agent_data.at[0, "gdp_influx"]
+            total_welfare += agent.welfare
+            pred_dirty += agent.pred_dirty
+            total_nr_clean += agent.nr_clean
+            total_nr_dirty += agent.nr_dirty
+            if agent.last_trade_price_energy != 0.0001:
+                prices[idx] = agent.last_trade_price_energy
 
-            agent.m_money = agent_data.at[0, "Percentage_GDP_expenditure"] * \
-                            agent_data.at[0, "gdp_influx"] * self.metab_m_scalar
+        # avg proportion clean plants
+        if total_nr_clean != 0 and total_nr_dirty != 0:
+            self.prop_clean = total_nr_clean / (total_nr_dirty + total_nr_clean)
 
-            agent.w_money = np.random.default_rng(self.seed+1).uniform(low=0.01, high=agent.influx_money)
-            agent.w_energy = np.random.default_rng(self.seed+2).uniform(low=0.01, high=agent.influx_money)
+        # green takeover
+        self.timestep += 1
+        if total_nr_clean > total_nr_dirty:
+            if self.dom == 'dirty':
+                self.clean_overtake = self.timestep
+            self.more_clean += 1
+            self.dom = 'clean'
+        elif total_nr_clean < total_nr_dirty:
+            if self.dom == 'clean':
+                self.clean_overtake = self.timestep
+            self.more_dirty += 1
+            self.dom = 'dirty'
 
-            # new
-            # agent.w_energy = rands[i]
+        # economic convergence
+        self.gini = gini_coef(welfares_list)
+        self.average_welfare = total_welfare / nr_agents
+        self.avg_pred_dirty = pred_dirty / nr_agents
+        self.avg_nr_dirty = total_nr_dirty / nr_agents
+        self.avg_nr_clean = total_nr_clean / nr_agents
 
-            if agent.m_energy <= 0:
-                agent.m_energy = 0.001
-            if agent.m_money <= 0:
-                agent.m_money = 0.001
-            for attr in ["pred_dirty", "pred_clean", "influx_money"]:
-                if getattr(agent, attr) <= 0:
-                    setattr(agent, attr, 0.001)
-            # need to collect to initialise wealth
-            agent.collect()
-            agent.calculate_welfare()
-            agent.calculate_mrs()
+        # print(self.average_welfare)
 
-        # plt.figure()
-        # # Plot a histogram of the values
-        # plt.hist(pred_dirties, bins=50, edgecolor='black',alpha = 0.5,label = 'dirty')
-        # plt.hist(pred_cleans, bins=50, edgecolor='black',alpha = 0.5,label = 'clean')
-        #
-        # # Add labels and title
-        # plt.xlabel('Values')
-        # plt.ylabel('Frequency')
-        # plt.legend()
-        # plt.title('Distribution of Values')
+        self.average_price = np.mean(prices)
+        self.var_price = np.var(prices)
+        self.var_welfare = np.var(welfares_list)
+        self.modularity = network_analysis.estimate_modularity(adoption_dict)
 
-        # Show plot
-        # plt.show()
+        self.datacollector.collect(self)
+        self.trading_volume = 0
 
     def init_random(self):
-        rands = np.random.default_rng(self.seed+3).uniform(low=0.01, size=len(self.agents) * 8)
+        rands = np.random.default_rng(self.seed + 3).uniform(low=0.01, size=len(self.agents) * 8)
         rands = rands.reshape((8, len(self.agents)))
         for i, agent in enumerate(self.agents):
             self.schedule.add(agent)
@@ -215,14 +216,14 @@ class GeoModel(mesa.Model):
         """
 
         def fast_choice(input_list):
-            return input_list[np.random.default_rng(self.seed+5).integers(0, len(input_list))]
+            return input_list[np.random.default_rng(self.seed + 5).integers(0, len(input_list))]
 
         all_countries = self.agents
 
         for cur_country in all_countries:
 
             # trade with everyone with probability eta
-            if self.eta_trading > np.random.default_rng(self.seed+6).random():
+            if self.eta_trading > np.random.default_rng(self.seed + 6).random():
                 all_neighs: list = self.space.get_neighbors(cur_country)
             else:
                 all_neighs: list = self.agents
@@ -293,7 +294,6 @@ class GeoModel(mesa.Model):
                 if self.pareto_optimal:
                     if not self.pareto_optimality(cur_country, cur_neigh, money, energy):
                         continue
-
 
                 # do transaction
                 cur_country.w_energy += energy
@@ -399,74 +399,14 @@ class GeoModel(mesa.Model):
 
         for agent in self.agents:
             clean_plant_nr = agent.nr_clean
-            if agent.nr_clean <1:
+            if agent.nr_clean < 1:
                 clean_plant_nr = 1
-            ratio = agent.nr_dirty/clean_plant_nr
+            ratio = agent.nr_dirty / clean_plant_nr
 
             if ratio > 1 and ratio < 2:
-                agent.w_money -= agent.w_money * (ratio-1)*0.3
+                agent.w_money -= agent.w_money * (ratio - 1) * 0.3
             elif ratio > 2:
                 agent.w_money -= agent.w_money * 0.3
-
-    def log_data(self) -> None:
-        """
-        Compute average values, statistics etc. of the system and self in class attributes (e.g., self.avg_energy).
-        Will feed to datacollector later.
-        :return: None
-        """
-
-        def gini_coef(x, w=None):
-            x = np.asarray(x)
-            sorted_x = np.sort(x)
-            n = len(x)
-            cumx = np.cumsum(sorted_x, dtype=float)
-            return (n + 1 - 2 * np.sum(cumx) / cumx[-1]) / n
-
-        # compute statistics of the step here
-        nr_agents = len(self.agents)
-        total_welfare = 0
-        prices = np.empty(nr_agents)
-        pred_dirty = 0
-        total_nr_dirty = 0
-        total_nr_clean = 0
-        welfares_list = np.empty(nr_agents)
-        for idx, agent in enumerate(self.agents):
-            total_welfare += agent.welfare
-            pred_dirty += agent.pred_dirty
-            total_nr_clean += agent.nr_clean
-            total_nr_dirty += agent.nr_dirty
-            welfares_list[idx] = agent.welfare
-            if agent.last_trade_price_energy != 0.0001:
-                prices[idx] = agent.last_trade_price_energy
-        self.gini = gini_coef(welfares_list)
-
-        if total_nr_clean != 0 and total_nr_dirty != 0:
-            self.prop_clean = total_nr_clean / (total_nr_dirty + total_nr_clean)
-
-        self.timestep += 1
-        if total_nr_clean > total_nr_dirty:
-            if self.dom == 'dirty':
-                self.clean_overtake = self.timestep
-            self.more_clean += 1
-            self.dom = 'clean'
-        elif total_nr_clean < total_nr_dirty:
-            if self.dom == 'clean':
-                self.clean_overtake = self.timestep
-            self.more_dirty += 1
-            self.dom = 'dirty'
-
-        self.average_welfare = total_welfare / nr_agents
-        self.avg_pred_dirty = pred_dirty / nr_agents
-        self.avg_nr_dirty = total_nr_dirty / nr_agents
-        self.avg_nr_clean = total_nr_clean / nr_agents
-
-        # print(self.average_welfare)
-
-        self.average_price = np.mean(prices)
-        self.var_price = np.var(prices)
-        self.var_welfare = np.var(welfares_list)
-        self.datacollector.collect(self)
-        self.trading_volume = 0
 
 
 if __name__ == "__main__":
@@ -474,21 +414,29 @@ if __name__ == "__main__":
 
     now = time.time()
     new = GeoModel()
-    new.run_model(150)
+    new.run_model(1024)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
     a_data = new.datacollector.get_agent_vars_dataframe()
-    df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
-    df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
-    print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
-    a_data["Welfare"].to_csv("Welfare_per_country.csv")
-
     # plot welfare
     plt.figure()
     plt.xlabel("Timesteps, t")
-    plt.ylabel("Welfare, W")
-    plt.plot(data["Welfare"])
+    plt.ylabel("Modularity, M")
+    plt.plot(data["modularity_ga"][1:])
     plt.show()
+
+    # df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
+    # df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
+    # print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
+    # a_data["Welfare"].to_csv("Welfare_per_country.csv")
+
+
+    # # plot welfare
+    # plt.figure()
+    # plt.xlabel("Timesteps, t")
+    # plt.ylabel("Welfare, W")
+    # plt.plot(data["Welfare"])
+    # plt.show()
     # data["Welfare"].to_csv("w_noni")
 
     # plt.figure()
@@ -534,13 +482,13 @@ if __name__ == "__main__":
     # plt.title("nr dirty per country")
     # plt.plot(data["Pred_dirty"])
     # plt.plot(df_by_country)
-    plt.figure()
-    plt.ylabel("Number plants")
-    plt.xlabel("Timesteps, t")
-    plt.plot(data["nr_dirty"], color='brown', label="dirty")
-    plt.plot(data["nr_clean"], color='green', label="clean")
-    plt.legend()
-    plt.show()
+    # plt.figure()
+    # plt.ylabel("Number plants")
+    # plt.xlabel("Timesteps, t")
+    # plt.plot(data["nr_dirty"], color='brown', label="dirty")
+    # plt.plot(data["nr_clean"], color='green', label="clean")
+    # plt.legend()
+    # plt.show()
     # plt.semilogy(data["Price"][10:])
     # plt.plot(data["Welfare"][10:])
     # plt.xlim([10,100])
@@ -553,3 +501,71 @@ if __name__ == "__main__":
     # plt.show()
 
     # print(a_data)
+
+### legacy code #####
+# def load_countries(self):
+#     """
+#     Initialise the country and fill the attributes from csv.
+#     All values have been sourced from real data and scaled into [0,1] using min-max scaling.
+#     Only "Percentage_GDP_expenditure" was not altered.
+#
+#     :return: None
+#     """
+#     pred_dirties = np.empty(len(self.agents))
+#     pred_cleans = np.empty(len(self.agents))
+#
+#     # print(rands)
+#     rands1 = np.random.default_rng(self.seed+10).uniform(low=0.01, size=len(self.agents))
+#     rands2 = np.random.default_rng(self.seed+11).uniform(low=0.01, size=len(self.agents))
+#
+#     data = pd.read_csv("energy_model_v2.csv", sep=",")
+#     for i, agent in enumerate(self.agents):
+#         self.schedule.add(agent)
+#         agent_data = data.loc[data['Country'] == agent.unique_id].reset_index()
+#
+#         # effective power plant output
+#         agent.pred_dirty = float(agent_data.at[0, "pred_dirty"])
+#         agent.pred_clean = float(agent_data.at[0, "pred_clean"])
+#
+#         pred_dirties[i] = float(agent_data.at[0, "pred_dirty"]) * 10
+#         pred_cleans[i] = float(agent_data.at[0, "pred_clean"]) * 10
+#         # energy
+#         agent.m_energy = agent_data.at[0, "energy_demand"] * \
+#                          self.metab_e_scalar
+#         # money
+#         agent.influx_money = agent_data.at[0, "gdp_influx"]
+#
+#         agent.m_money = agent_data.at[0, "Percentage_GDP_expenditure"] * \
+#                         agent_data.at[0, "gdp_influx"] * self.metab_m_scalar
+#
+#         agent.w_money = np.random.default_rng(self.seed+1).uniform(low=0.01, high=agent.influx_money)
+#         agent.w_energy = np.random.default_rng(self.seed+2).uniform(low=0.01, high=agent.influx_money)
+#
+#         # new
+#         # agent.w_energy = rands[i]
+#
+#         if agent.m_energy <= 0:
+#             agent.m_energy = 0.001
+#         if agent.m_money <= 0:
+#             agent.m_money = 0.001
+#         for attr in ["pred_dirty", "pred_clean", "influx_money"]:
+#             if getattr(agent, attr) <= 0:
+#                 setattr(agent, attr, 0.001)
+#         # need to collect to initialise wealth
+#         agent.collect()
+#         agent.calculate_welfare()
+#         agent.calculate_mrs()
+#
+#     # plt.figure()
+#     # # Plot a histogram of the values
+#     # plt.hist(pred_dirties, bins=50, edgecolor='black',alpha = 0.5,label = 'dirty')
+#     # plt.hist(pred_cleans, bins=50, edgecolor='black',alpha = 0.5,label = 'clean')
+#     #
+#     # # Add labels and title
+#     # plt.xlabel('Values')
+#     # plt.ylabel('Frequency')
+#     # plt.legend()
+#     # plt.title('Distribution of Values')
+#
+#     # Show plot
+#     # plt.show()
