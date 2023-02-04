@@ -22,7 +22,7 @@ np.random.seed(seed)
 class GeoModel(mesa.Model):
     def __init__(self, cost_clean=.4, cost_dirty=.2, base_output_dirty=0.4, base_output_clean=0.2,
                  metabolism_scalar_energy=1.5, metabolism_scalar_money=1, eta_global_trade=0.01,
-                 predisposition_decrease=0.000_01, pareto_optimal=False, seed=seed):
+                 predisposition_decrease=0.000_05, pareto_optimal=False, seed=seed):
         self.seed = seed
 
         # initialise space and add countries
@@ -422,7 +422,7 @@ if __name__ == "__main__":
     plt.figure()
     plt.xlabel("Timesteps, t")
     plt.ylabel("Modularity, M")
-    plt.plot(data["modularity_ga"][1:])
+    plt.plot(data["modularity_ga"][100:])
     plt.show()
 
     # df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
@@ -432,11 +432,11 @@ if __name__ == "__main__":
 
 
     # # plot welfare
-    # plt.figure()
-    # plt.xlabel("Timesteps, t")
-    # plt.ylabel("Welfare, W")
-    # plt.plot(data["Welfare"])
-    # plt.show()
+    plt.figure()
+    plt.xlabel("Timesteps, t")
+    plt.ylabel("Welfare, W")
+    plt.plot(data["Welfare"])
+    plt.show()
     # data["Welfare"].to_csv("w_noni")
 
     # plt.figure()
@@ -482,13 +482,13 @@ if __name__ == "__main__":
     # plt.title("nr dirty per country")
     # plt.plot(data["Pred_dirty"])
     # plt.plot(df_by_country)
-    # plt.figure()
-    # plt.ylabel("Number plants")
-    # plt.xlabel("Timesteps, t")
-    # plt.plot(data["nr_dirty"], color='brown', label="dirty")
-    # plt.plot(data["nr_clean"], color='green', label="clean")
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.ylabel("Number plants")
+    plt.xlabel("Timesteps, t")
+    plt.plot(data["nr_dirty"], color='brown', label="dirty")
+    plt.plot(data["nr_clean"], color='green', label="clean")
+    plt.legend()
+    plt.show()
     # plt.semilogy(data["Price"][10:])
     # plt.plot(data["Welfare"][10:])
     # plt.xlim([10,100])

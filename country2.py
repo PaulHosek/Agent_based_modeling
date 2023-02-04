@@ -227,9 +227,9 @@ class Country(mg.GeoAgent):
 
     def kill_plant(self):
         # for plant in [self.nr_dirty, self.nr_clean]:
-        if 0.2 > np.random.default_rng(self.seed + 22).random() and self.nr_dirty > 0:
+        if 0.4 > np.random.default_rng(self.seed + 22).random() and self.nr_dirty > 0:
             self.nr_dirty -= 1
-        if 0.2 > np.random.default_rng(self.seed + 23).random() and self.nr_clean > 0:
+        if 0.4 > np.random.default_rng(self.seed + 23).random() and self.nr_clean > 0:
             self.nr_clean -= 1
 
     def reduce_pred(self):
