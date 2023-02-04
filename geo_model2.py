@@ -22,13 +22,18 @@ class GeoModel(mesa.Model):
     def __init__(self, cost_clean=.4, cost_dirty=.2, base_output_dirty=0.4, base_output_clean=0.2,
                  metabolism_scalar_energy=1.5, metabolism_scalar_money=1, eta_global_trade=0.01,
                  predisposition_decrease=0.000_01, pareto_optimal=False, seed = seed):
-
-        # initialise global model parameters
-        self.step_nr = 0
-        self.schedule = mesa.time.RandomActivation(self)
         self.seed = seed
 
-        # trackers
+        # initialise space and add countries
+        self.space = mg.GeoSpace(crs="4326")
+        ac = mg.AgentCreator(agent_class=country2.Country, model=self)
+        self.agents = ac.from_file("final_eu_countries.geojson", unique_id="NAME")
+        self.space.add_agents(self.agents)
+        # initialise global model parameters
+        self.schedule = mesa.time.RandomActivation(self)
+
+
+        # Trackers
         self.gini = 0
         self.prop_clean = 0
         self.more_clean = 0
@@ -45,22 +50,14 @@ class GeoModel(mesa.Model):
         self.avg_nr_dirty = 0
         self.avg_nr_clean = 0
         self.trading_volume = 0
+        self.max_steps = 0
+        self.step_nr = 0
 
+
+        # parameters
         self.quantitiy_max_traded = 0.001
-        # P(trade with everyone)
         self.eta_trading = eta_global_trade
         self.pareto_optimal = pareto_optimal
-
-        # initialise space
-        self.space = mg.GeoSpace(crs="4326")
-
-        # add countries to space
-
-        ac = mg.AgentCreator(agent_class=country2.Country, model=self)
-        self.agents = ac.from_file("final_eu_countries.geojson", unique_id="NAME")
-        self.space.add_agents(self.agents)
-
-        # load countries and set model parameters
         self.metab_e_scalar: float = float(metabolism_scalar_energy)
         self.metab_m_scalar: float = float(metabolism_scalar_money)
 
@@ -73,7 +70,7 @@ class GeoModel(mesa.Model):
             agent.predisposition_decrease = predisposition_decrease
 
         self.datacollector = mesa.datacollection.DataCollector(model_reporters={"Gini_welfare": 'gini',
-                                                                                "clustering_coef":"clustering_coef",
+                                                                                "modularity_ga":"modularity_ga",
 
 
                                                                                 "Price": 'average_price',
@@ -96,16 +93,12 @@ class GeoModel(mesa.Model):
                                                                                 "var_welfare": "var_welfare",
                                                                                 "Pred_dirty": 'avg_pred_dirty'},
                                                                agent_reporters={"Welfare": "welfare",
+                                                                                "Clean_adoption":"clean_adoption",
                                                                                 "nr_dirty": "nr_dirty",
                                                                                 "nr_clean": "nr_clean",
                                                                                 "w_energy": "w_energy",
                                                                                 "w_money": "w_money"})
-
-
-
-
         self.init_random()
-
         self.log_data()
 
     def load_countries(self):
@@ -194,6 +187,7 @@ class GeoModel(mesa.Model):
 
     def run_model(self, nr_steps) -> None:
         """Run model for n steps."""
+        self.max_steps = nr_steps
         for i in range(nr_steps):
             self.step()
 
@@ -206,17 +200,7 @@ class GeoModel(mesa.Model):
         self.schedule.step()
         self.trading_cycle()
         # self.tax_dirty()
-        print(0.6*self.avg_pred_dirty)
 
-
-        # def min_max(vals):
-        #     min_val = min(vals)
-        #     max_val = max(vals)
-        #     return [(x - min_val) / (max_val - min_val) for x in vals]
-
-        # scaled = min_max([a.welfare for a in self.agents])
-        # for i, a in enumerate(self.agents):
-        #     a.welfare = scaled[i]
         self.log_data()
 
     def trading_cycle(self) -> None:
@@ -384,6 +368,7 @@ class GeoModel(mesa.Model):
 
             # cur_country.model.price_record[cur_country.model.step_num].append(price)
             # cur_country.make_link(cur_neigh)
+
     @staticmethod
     def pareto_optimality(buying_c, selling_c, money, energy):
         """Test if a trade will be pareto optimal."""
@@ -422,9 +407,6 @@ class GeoModel(mesa.Model):
                 agent.w_money -= agent.w_money * (ratio-1)*0.3
             elif ratio > 2:
                 agent.w_money -= agent.w_money * 0.3
-
-            # find what ratio is
-            # if ratio is too high, punish
 
     def log_data(self) -> None:
         """
@@ -495,28 +477,11 @@ if __name__ == "__main__":
     new.run_model(150)
     print(time.time() - now)
     data = new.datacollector.get_model_vars_dataframe()
-    # print(data)
     a_data = new.datacollector.get_agent_vars_dataframe()
     df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
     df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
-    # df_by_country_e = a_data.pivot_table(values = 'w_money', columns = 'AgentID', index = 'Step')
-    # print("Welfare")
     print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
-    # print("w_energy")
-    # print(df_by_country_e)
     a_data["Welfare"].to_csv("Welfare_per_country.csv")
-
-
-    # plt.figure()
-    # plt.title("energy")
-    # plt.plot(df_by_country_e, color='red', alpha =0.3)
-    # plt.show()
-    #
-    # plt.figure()
-    # plt.ylabel("Money")
-    # plt.xlabel("Timesteps, t")
-    # plt.plot(df_by_country_m, color='green', alpha=0.3)
-    # plt.show()
 
     # plot welfare
     plt.figure()

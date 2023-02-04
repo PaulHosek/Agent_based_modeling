@@ -11,35 +11,36 @@ class Country(mg.GeoAgent):
                  m_energy=0.1, m_money=0.1, w_energy=0.01, w_money=0.01, predisposition_decrease=0.0001):
 
         """
+        Initialise the Country agent.
+        Values assigned are default values and are set by model initialisation.
         :param unique_id: Name of country
-        :param model:
-        :param geometry:
         """
         super().__init__(unique_id, model, geometry, crs)
-        # attributes
+
+        # statistics
         self.name: str = 'na'
-        # self.metabolism: dict = metabolism
-        # self.wealth: dict = wealth
         self.welfare: float = 0.001
         self.mrs: float = 0.001
+
+        # attributes
         self.produced_energy: float = 0.001
         self.influx_money: float = 0.001
         self.w_money = w_money
         self.w_energy = w_energy
         self.m_money = m_money
         self.m_energy = m_energy
-
-        # for later
         self.pred_dirty: float = 0.001
         self.pred_clean: float = 0.001
         self.nr_dirty: int = 0
         self.nr_clean: int = 0
         self.predisposition_decrease = predisposition_decrease
 
+        self.clean_adoption = 0
+
         # attributes set by model
         self.last_trade_success: bool = False
         self.last_trade_price_energy: float = 0.0001  # TODO this should probs not be this
-        # base output of single plants as determined by the initialisation
+
         self.output_single_dirty: float = 0.001
         self.output_single_clean: float = 0.001
         self.cost_dirty: float = 0.001
@@ -62,9 +63,10 @@ class Country(mg.GeoAgent):
         self.calculate_mrs()
         self.reduce_pred()
         self.kill_plant()
+
+        # energy cap
         if self.w_energy > 100:
             self.w_energy = 100
-
 
     def collect(self) -> None:
         """Collect energy and money from power plants and gdp influx.
@@ -82,19 +84,13 @@ class Country(mg.GeoAgent):
         4. Build power plant
         5. Compute new wealth for energy and money.
         """
-        # if cant afford any plant
-
-        # if self.cost_clean > self.w_money - 0.1 and self.cost_dirty > self.w_money - 0.1:
-        #     return
-
         if self.cost_clean > self.w_money - (self.w_money * 0.3) \
                 and self.cost_dirty > self.w_money - (self.w_money * 0.3):
             return
 
-        if self.build_neighbour_plant():
-            return
-
-        # print("COST", self.cost_clean, self.w_money)
+        # neighbourhood influence
+        # if self.build_neighbour_plant():
+        #     return
 
         build_d_welfare = self.would_be_welfare("dirty")
         build_c_welfare = self.would_be_welfare("clean")
@@ -114,33 +110,16 @@ class Country(mg.GeoAgent):
         options.sort(reverse=True, key=lambda x: x[0])
         options = sorted(options, reverse=True, key=lambda x: x[0])
 
-
-
-
-        # build their plant
-        # skip the rest of the decisio
-
-        # print("Options", options)
-        # choose first option we can afford
+        # choose option that maximises welfare
         best = next((x for x in options if x[1] < self.w_money - (self.w_money * 0.3) and not math.isnan(x[1])),
                     (trade_c_welfare, 0, "trade"))
         if best[2] == "dirty" or best[2] == "clean":
             # print(best[2])
             self.build_plant(best[2])
 
-        # if last trade was not successful, but the best option was trade. Try to build the best plant we can.
-        # elif best[2] == "trade" and not self.last_trade_success:
-        #     # if there are any plants we can afford, build the one with the highest welfare
-        #     best_build = sorted((x for x in options
-        #                          if (x[2] == "dirty" or x[2] == "clean") and x[1] < self.w_money - (self.w_money * 0.3)),
-        #                         reverse=True, key=lambda x: x[0])
-        #     if best_build:
-        #         self.build_plant(best_build[0][2])
-        # else:
-        #     pass
     def build_neighbour_plant(self):
         influence, their_plant = self.neighbour_influence()
-        if influence > np.random.default_rng(self.seed+21).uniform():
+        if influence > np.random.default_rng(self.seed + 21).uniform():
             if their_plant == "clean" and self.cost_clean > self.w_money - (self.w_money * 0.3):
                 self.build_plant("clean")
                 return True
@@ -156,7 +135,7 @@ class Country(mg.GeoAgent):
             return 0, ""
         best_neigh = all_neigh[0]
 
-        influence = 1-(self.welfare/best_neigh.welfare) if best_neigh.welfare != 0 else 0
+        influence = 1 - (self.welfare / best_neigh.welfare) if best_neigh.welfare != 0 else 0
         if influence < 0:
             influence = 0
         if best_neigh.nr_dirty > best_neigh.nr_clean:
@@ -175,22 +154,7 @@ class Country(mg.GeoAgent):
 
         return influence, plant
 
-
-        # calculate dominant plant
-        # calculate 1-my_welfare/their_welfare => influence factor
-        # return influence_factor, plant
-
-    # if influnce_factor > np.random.uniform() and if can afford:
-            # build their plant
-            # skip the rest of the decision
-
-
-
-
-
-        # test if my is larger then break or sth
-
-    def would_be_welfare(self, action: str, trading_quantity = 0.1) -> float:
+    def would_be_welfare(self, action: str, trading_quantity=0.1) -> float:
         if action == "dirty":
             add_energy = self.pred_dirty * self.output_single_dirty
             expected_market_cost = self.cost_dirty
@@ -268,9 +232,9 @@ class Country(mg.GeoAgent):
 
     def kill_plant(self):
         # for plant in [self.nr_dirty, self.nr_clean]:
-        if 0.2 > np.random.default_rng(self.seed+22).random() and self.nr_dirty > 0:
+        if 0.2 > np.random.default_rng(self.seed + 22).random() and self.nr_dirty > 0:
             self.nr_dirty -= 1
-        if 0.2 > np.random.default_rng(self.seed+23).random() and self.nr_clean > 0:
+        if 0.2 > np.random.default_rng(self.seed + 23).random() and self.nr_clean > 0:
             self.nr_clean -= 1
 
     def reduce_pred(self):
