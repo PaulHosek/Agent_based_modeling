@@ -60,8 +60,8 @@ class Country(mg.GeoAgent):
         self.calculate_welfare()
         self.calculate_mrs()
         self.calculate_adoption()
-        print("dirty",self.pred_dirty*self.output_single_dirty)
-        print("clean",self.pred_clean*self.output_single_clean)
+        print("dirty",self.nr_dirty)
+        print("clean",self.nr_clean)
 
         # energy cap
         if self.w_energy > 100:
@@ -94,14 +94,14 @@ class Country(mg.GeoAgent):
 
         build_d_welfare = self.would_be_welfare("dirty")
         build_c_welfare = self.would_be_welfare("clean")
-        trade_d_welfare = self.would_be_welfare("trade_e")
-        trade_c_welfare = self.would_be_welfare("trade_m")
+        trade_e_welfare = self.would_be_welfare("trade_e")
+        trade_m_welfare = self.would_be_welfare("trade_m")
 
         options = [
             [build_d_welfare, self.cost_dirty, "dirty"],
             [build_c_welfare, self.cost_clean, "clean"],
-            [trade_d_welfare, 0, "trade"],
-            [trade_c_welfare, 0, "trade"]
+            [trade_e_welfare, 0, "trade"],
+            [trade_m_welfare, 0, "trade"]
         ]
         options = [x for x in options if not math.isnan(x[1]) and not math.isnan((x[0]))]
 
@@ -112,7 +112,7 @@ class Country(mg.GeoAgent):
         print(options)
         # choose option that maximises welfare
         best = next((x for x in options if x[1] < self.w_money - (self.w_money * 0.3) and not math.isnan(x[1])),
-                    (trade_c_welfare, 0, "trade"))
+                    (trade_e_welfare, 0, "trade"))
         print(best)
         if best[2] == "dirty" or best[2] == "clean":
             # print(best[2])
@@ -237,9 +237,9 @@ class Country(mg.GeoAgent):
 
     def kill_plant(self):
         # for plant in [self.nr_dirty, self.nr_clean]:
-        if 0.4 > np.random.default_rng(None).random() and self.nr_dirty > 0:
+        if 0.1 > np.random.default_rng(None).random() and self.nr_dirty > 0:
             self.nr_dirty -= 1
-        if 0.4 > np.random.default_rng(None).random() and self.nr_clean > 0:
+        if 0.1 > np.random.default_rng(None).random() and self.nr_clean > 0:
             self.nr_clean -= 1
 
     def reduce_pred(self):

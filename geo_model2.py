@@ -20,9 +20,9 @@ np.random.seed(seed)
 
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=.2, cost_dirty=.2, base_output_dirty=0.4, base_output_clean=0.4,
+    def __init__(self, cost_clean=.02, cost_dirty=.02, base_output_dirty=0.8, base_output_clean=0.4,
                  metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0.01,
-                 predisposition_decrease=0.000_1, pareto_optimal=False, seed=seed, prob_neigh_influence = 0):
+                 predisposition_decrease=0.000_01, pareto_optimal=False, seed=seed, prob_neigh_influence = 0):
         self.seed = seed
         self.prob_neigh_influence = prob_neigh_influence
 
