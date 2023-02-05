@@ -20,11 +20,11 @@ np.random.seed(seed)
 
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=.4, cost_dirty=.2, base_output_dirty=0.4, base_output_clean=0.2,
+    def __init__(self, cost_clean=.2, cost_dirty=.2, base_output_dirty=0.4, base_output_clean=0.4,
                  metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0.01,
-                 predisposition_decrease=0.000_05, pareto_optimal=False, seed=seed, prob_neigh_influence = 0):
+                 predisposition_decrease=0.000_1, pareto_optimal=False, seed=seed, prob_neigh_influence = 0):
         self.seed = seed
-        self.prob_neigh_influence =  prob_neigh_influence
+        self.prob_neigh_influence = prob_neigh_influence
 
         # initialise space and add countries
         self.space = mg.GeoSpace(crs="4326")
@@ -453,26 +453,26 @@ class GeoModel(mesa.Model):
 
 
 
-# if __name__ == "__main__":
-#     pd.set_option('display.max_columns', None)
-#
-#     now = time.time()
-#     new = GeoModel()
-#     new.run_model(1024)
-#     print(time.time() - now)
-#     data = new.datacollector.get_model_vars_dataframe()
-#     a_data = new.datacollector.get_agent_vars_dataframe()
-#     # plot welfare
-#     plt.figure()
-#     plt.xlabel("Timesteps, t")
-#     plt.ylabel("Modularity, M")
-#     plt.plot(data["modularity_ga"][100:])
-#     plt.show()
-#
-#     # df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
-#     # df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
-#     # print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
-#     # a_data["Welfare"].to_csv("Welfare_per_country.csv")
+if __name__ == "__main__":
+    pd.set_option('display.max_columns', None)
+
+    now = time.time()
+    new = GeoModel()
+    new.run_model(1000)
+    print(time.time() - now)
+    data = new.datacollector.get_model_vars_dataframe()
+    a_data = new.datacollector.get_agent_vars_dataframe()
+    # plot welfare
+    plt.figure()
+    plt.xlabel("Timesteps, t")
+    plt.ylabel("Modularity, M")
+    plt.plot(data["modularity_ga"][100:])
+    plt.show()
+
+    # df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
+    # df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
+    # print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
+    # a_data["Welfare"].to_csv("Welfare_per_country.csv")
 #
 #
 #     # # plot welfare
@@ -507,11 +507,11 @@ class GeoModel(mesa.Model):
 #     # my_pivot = a_data.pivot_table(values='Welfare', columns='AgentID', index='Step')
 #     # print(my_pivot.max())
 #     #
-#     # plt.figure()
-#     # plt.title("welfare per country")
-#     # plt.plot(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
-#     #
-#     # plt.show()
+    plt.figure()
+    plt.title("welfare per country")
+    plt.plot(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
+
+    plt.show()
 #     # plt.figure()
 #     # plt.ylabel("Trading volume, #trades/t")
 #     # plt.xlabel("Timesteps, t")
@@ -525,13 +525,13 @@ class GeoModel(mesa.Model):
 #     # plt.title("nr dirty per country")
 #     # plt.plot(data["Pred_dirty"])
 #     # plt.plot(df_by_country)
-#     plt.figure()
-#     plt.ylabel("Number plants")
-#     plt.xlabel("Timesteps, t")
-#     plt.plot(data["nr_dirty"], color='brown', label="dirty")
-#     plt.plot(data["nr_clean"], color='green', label="clean")
-#     plt.legend()
-#     plt.show()
+    plt.figure()
+    plt.ylabel("Number plants")
+    plt.xlabel("Timesteps, t")
+    plt.plot(data["nr_dirty"], color='brown', label="dirty")
+    plt.plot(data["nr_clean"], color='green', label="clean")
+    plt.legend()
+    plt.show()
 #     # plt.semilogy(data["Price"][10:])
 #     # plt.plot(data["Welfare"][10:])
 #     # plt.xlim([10,100])

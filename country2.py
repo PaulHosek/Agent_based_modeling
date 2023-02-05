@@ -60,6 +60,8 @@ class Country(mg.GeoAgent):
         self.calculate_welfare()
         self.calculate_mrs()
         self.calculate_adoption()
+        print("dirty",self.pred_dirty*self.output_single_dirty)
+        print("clean",self.pred_clean*self.output_single_clean)
 
         # energy cap
         if self.w_energy > 100:
@@ -101,16 +103,17 @@ class Country(mg.GeoAgent):
             [trade_d_welfare, 0, "trade"],
             [trade_c_welfare, 0, "trade"]
         ]
-        options = [x for x in options if not math.isnan(x[1])]
+        options = [x for x in options if not math.isnan(x[1]) and not math.isnan((x[0]))]
 
         # sort options by welfare
 
         options.sort(reverse=True, key=lambda x: x[0])
-        options = sorted(options, reverse=True, key=lambda x: x[0])
-
+        # options = sorted(options, reverse=True, key=lambda x: x[0])
+        print(options)
         # choose option that maximises welfare
         best = next((x for x in options if x[1] < self.w_money - (self.w_money * 0.3) and not math.isnan(x[1])),
                     (trade_c_welfare, 0, "trade"))
+        print(best)
         if best[2] == "dirty" or best[2] == "clean":
             # print(best[2])
             self.build_plant(best[2])
