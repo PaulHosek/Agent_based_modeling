@@ -55,10 +55,11 @@ class Country(mg.GeoAgent):
         self.collect()
         self.invest()
         self.consume()
-        self.calculate_welfare()
-        self.calculate_mrs()
         self.reduce_pred()
         self.kill_plant()
+        self.calculate_welfare()
+        self.calculate_mrs()
+        self.calculate_adoption()
 
         # energy cap
         if self.w_energy > 100:
@@ -209,6 +210,11 @@ class Country(mg.GeoAgent):
         """Calculate Marginal Rate of Substitution (MRS)."""
         self.mrs = np.divide(np.multiply(np.add(self.w_energy, self.produced_energy), self.m_money),
                              np.multiply(np.add(self.w_money, self.influx_money), self.m_energy))
+
+    def calculate_adoption(self) -> None:
+        """Calculate green energy adoption."""
+        self.clean_adoption = self.nr_clean - self.nr_dirty
+
 
     def build_plant(self, type_plant: str):
         """
