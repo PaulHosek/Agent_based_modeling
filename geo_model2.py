@@ -24,6 +24,7 @@ class GeoModel(mesa.Model):
                  metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0.01,
                  predisposition_decrease=0.000_05, pareto_optimal=False, seed=seed, prob_neigh_influence = 0):
         self.seed = seed
+        self.prob_neigh_influence =  prob_neigh_influence
 
         # initialise space and add countries
         self.space = mg.GeoSpace(crs="4326")
@@ -61,7 +62,7 @@ class GeoModel(mesa.Model):
         self.pareto_optimal = pareto_optimal
         self.metab_e_scalar: float = float(metabolism_scalar_energy)
         self.metab_m_scalar: float = float(metabolism_scalar_money)
-        self.prob_neigh_influence =  prob_neigh_influence
+
 
         # parameters equivalent to taxation, subsidies and sanktions
         for agent in self.agents:

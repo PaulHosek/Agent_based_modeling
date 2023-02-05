@@ -86,7 +86,7 @@ class Country(mg.GeoAgent):
             return
 
         # neighbourhood influence
-        if np.default_rng(None).uniform() < self.prob_neigh_influence:
+        if np.random.default_rng(None).uniform() < self.prob_neigh_influence:
             if self.build_neighbour_plant():
                 return
 
