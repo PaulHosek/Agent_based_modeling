@@ -28,53 +28,17 @@ def import_eu_graph():
                     "Luxembourg", "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia",
                     "Spain", "Sweden"]
 
-    eu_borders = [
-        ("Austria", "Germany"),
-        ("Austria", "Czech Republic"),
-        ("Austria", "Slovakia"),
-        ("Austria", "Slovenia"),
-        ("Austria", "Italy"),
-        ("Belgium", "Netherlands"),
-        ("Belgium", "Germany"),
-        ("Belgium", "Luxembourg"),
-        ("Belgium", "France"),
-        ("Bulgaria", "Romania"),
-        ("Bulgaria", "Greece"),
-        ("Croatia", "Slovenia"),
-        ("Croatia", "Hungary"),
-        ("Czech Republic", "Germany"),
-        ("Czech Republic", "Poland"),
-        ("Czech Republic", "Slovakia"),
-        ("Denmark", "Germany"),
-        ("Estonia", "Latvia"),
-        ("Finland", "Sweden"),
-        ("France", "Belgium"),
-        ("France", "Luxembourg"),
-        ("France", "Germany"),
-        ("France", "Italy"),
-        ("Germany", "Denmark"),
-        ("Germany", "Poland"),
-        ("Germany", "Czech Republic"),
-        ("Germany", "Austria"),
-        ("Germany", "Netherlands"),
-        ("Greece", "Bulgaria"),
-        ("Hungary", "Austria"),
-        ("Hungary", "Slovakia"),
-        ("Hungary", "Romania"),
-        ("Italy", "Austria"),
-        ("Italy", "Slovenia"),
-        ("Latvia", "Lithuania"),
-        ("Lithuania", "Poland"),
-        ("Luxembourg", "Belgium"),
-        ("Luxembourg", "Germany"),
-        ("Malta", "Italy"),
-        ("Netherlands", "Belgium"),
-        ("Netherlands", "Germany"),
-        ("Poland", "Germany"),
-        ("Poland", "Czech Republic"),
-        ("Poland", "Slovakia")]
+    eu_borders = [('Austria', 'Germany'), ('Austria', 'Czech Republic'), ('Austria', 'Slovakia'),
+                  ('Austria', 'Slovenia'), ('Austria', 'Hungary'), ('Austria', 'Italy'), ('Belgium', 'Netherlands'),
+                  ('Belgium', 'Germany'), ('Belgium', 'Luxembourg'), ('Belgium', 'France'), ('Bulgaria', 'Greece'),
+                  ('Bulgaria', 'Romania'), ('Croatia', 'Slovenia'), ('Croatia', 'Hungary'),
+                  ('Czech Republic', 'Germany'), ('Czech Republic', 'Poland'), ('Czech Republic', 'Slovakia'),
+                  ('Denmark', 'Germany'), ('Denmark', 'Sweden'), ('Estonia', 'Latvia'), ('Finland', 'Sweden'),
+                  ('France', 'Spain'), ('France', 'Italy'), ('France', 'Germany'), ('France', 'Luxembourg'),
+                  ('Germany', 'Netherlands'), ('Germany', 'Luxembourg'), ('Germany', 'Poland'), ('Hungary', 'Romania'),
+                  ('Hungary', 'Slovakia'), ('Hungary', 'Slovenia'), ('Italy', 'Slovenia'), ('Latvia', 'Lithuania'),
+                  ('Lithuania', 'Poland'), ('Poland', 'Slovakia'), ('Portugal', 'Spain')]
 
-    eu_borders += [("Sweden", "Denmark")]
     G = nx.Graph()
 
     # Add the EU countries as nodes to the graph
@@ -91,6 +55,8 @@ def similarity_weighting(eu_graph, adoption_dict):
         weight = euclidian_similarity(adoption_dict[country_a], adoption_dict[country_b])
         eu_graph.add_edge(country_a, country_b, weight=weight)
     return eu_graph
+
+
 def euclidian_similarity(a, b):
     """Symmetric similarity measure based on euclidean distance."""
     return 1 - np.linalg.norm(a - b)
