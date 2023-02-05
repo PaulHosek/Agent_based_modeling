@@ -21,7 +21,7 @@ np.random.seed(seed)
 
 class GeoModel(mesa.Model):
     def __init__(self, cost_clean=.4, cost_dirty=.2, base_output_dirty=0.4, base_output_clean=0.2,
-                 metabolism_scalar_energy=1.5, metabolism_scalar_money=1, eta_global_trade=0.01,
+                 metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0.01,
                  predisposition_decrease=0.000_05, pareto_optimal=False, seed=seed):
         self.seed = seed
 
@@ -96,8 +96,9 @@ class GeoModel(mesa.Model):
                                                                                 "nr_dirty": "nr_dirty",
                                                                                 "nr_clean": "nr_clean",
                                                                                 "w_energy": "w_energy",
-                                                                                "w_money": "w_money"})
-        self.init_random()
+                                                                                 "w_money": "w_money"})
+        # self.init_random()
+        self.load_countries()
         self.log_data()
 
     def log_data(self) -> None:
@@ -170,18 +171,54 @@ class GeoModel(mesa.Model):
         self.trading_volume = 0
 
     def init_random(self):
-        rands = np.random.default_rng(self.seed + 3).uniform(low=0.01, size=len(self.agents) * 8)
-        rands = rands.reshape((8, len(self.agents)))
+        rands = np.random.default_rng(self.seed).uniform(low=0.01, size=len(self.agents) * 5)
+        rands = rands.reshape((5, len(self.agents)))
+        rands_m = np.random.default_rng(self.seed).uniform(low=0.4, high=0.6, size=(len(self.agents)*2))
+        rands_m = rands_m.reshape((2, len(self.agents)))
+
         for i, agent in enumerate(self.agents):
             self.schedule.add(agent)
             rands1 = rands[:, i]
-            agent.w_energy = rands1[0]
-            agent.w_money = rands1[1]
-            agent.m_energy = rands1[2] * self.metab_e_scalar
-            agent.m_money = rands1[3] * self.metab_m_scalar
-            agent.pred_dirty = rands1[4]
-            agent.pred_clean = rands1[5]
-            agent.influx_money = rands1[6]
+            agent.w_energy = rands[0]
+            agent.w_money = rands[1]
+            agent.m_energy = rands_m[0] * self.metab_e_scalar
+            agent.m_money = rands_m[1] * self.metab_m_scalar
+            agent.pred_dirty = rands[2]
+            agent.pred_clean = rands[3]
+            agent.influx_money = rands[4]
+            agent.collect()
+            agent.calculate_welfare()
+            agent.calculate_mrs()
+
+    def load_countries(self):
+        """
+        Initialise the country and fill the attributes from csv.
+        All values have been sourced from real data and scaled into [0,1] using min-max scaling.
+        Only "Percentage_GDP_expenditure" was not altered.
+
+        :return: None
+        """
+        pred_dirties = np.empty(len(self.agents))
+        pred_cleans = np.empty(len(self.agents))
+
+        # print(rands)
+
+        data = pd.read_csv("energy_model_v2.csv", sep=",")
+        for i, agent in enumerate(self.agents):
+            self.schedule.add(agent)
+            agent_data = data.loc[data['Country'] == agent.unique_id].reset_index()
+
+            # effective power plant output
+            agent.pred_dirty = float(agent_data.at[0, "pred_dirty"])
+            agent.pred_clean = float(agent_data.at[0, "pred_clean"])
+
+            pred_dirties[i] = float(agent_data.at[0, "pred_dirty"]) * 10
+            pred_cleans[i] = float(agent_data.at[0, "pred_clean"]) * 10
+            # energy
+            agent.m_energy = agent_data.at[0, "energy_demand"] * \
+                             self.metab_e_scalar
+            # money
+            agent.influx_money = agent_data.at[0, "gdp_influx"]
             agent.collect()
             agent.calculate_welfare()
             agent.calculate_mrs()
@@ -215,15 +252,16 @@ class GeoModel(mesa.Model):
                 - no trade is made if the country has <0.3 of the resource of interest
         """
 
+
         def fast_choice(input_list):
-            return input_list[np.random.default_rng(self.seed + 5).integers(0, len(input_list))]
+            return input_list[np.random.default_rng(None).integers(0, len(input_list))]
 
         all_countries = self.agents
 
         for cur_country in all_countries:
 
             # trade with everyone with probability eta
-            if self.eta_trading > np.random.default_rng(self.seed + 6).random():
+            if self.eta_trading > np.random.default_rng(None).random():
                 all_neighs: list = self.space.get_neighbors(cur_country)
             else:
                 all_neighs: list = self.agents
@@ -407,6 +445,9 @@ class GeoModel(mesa.Model):
                 agent.w_money -= agent.w_money * (ratio - 1) * 0.3
             elif ratio > 2:
                 agent.w_money -= agent.w_money * 0.3
+
+
+
 
 
 if __name__ == "__main__":

@@ -116,7 +116,7 @@ class Country(mg.GeoAgent):
 
     def build_neighbour_plant(self):
         influence, their_plant = self.neighbour_influence()
-        if influence > np.random.default_rng(self.seed + 21).uniform():
+        if influence > np.random.default_rng(None).uniform():
             if their_plant == "clean" and self.cost_clean > self.w_money - (self.w_money * 0.3):
                 self.build_plant("clean")
                 return True
@@ -233,9 +233,9 @@ class Country(mg.GeoAgent):
 
     def kill_plant(self):
         # for plant in [self.nr_dirty, self.nr_clean]:
-        if 0.4 > np.random.default_rng(self.seed + 22).random() and self.nr_dirty > 0:
+        if 0.4 > np.random.default_rng(None).random() and self.nr_dirty > 0:
             self.nr_dirty -= 1
-        if 0.4 > np.random.default_rng(self.seed + 23).random() and self.nr_clean > 0:
+        if 0.4 > np.random.default_rng(None).random() and self.nr_clean > 0:
             self.nr_clean -= 1
 
     def reduce_pred(self):
