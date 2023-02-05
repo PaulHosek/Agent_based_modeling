@@ -68,5 +68,39 @@ latvia = [("Latvia", "Lithuania"),
 
 lithuania = [("Lithuania", "Latvia"),
              ("Lithuania", "Poland")]
+
+luxembourg = [("Luxembourg", "Belgium"),
+              ("Luxembourg", "Germany"),
+              ("Luxembourg", "France")]
+malta = []
+
+netherlands = [("Netherlands", "Germany"),
+               ("Netherlands", "Belgium")]
+
+poland = [("Poland", "Germany"),
+          ("Poland", "Slovakia"),
+          ("Poland", "Czech Republic"),
+          ("Poland", "Lithuania")]
+
+portugal = [("Portugal", "Spain")]
+
+romania = [("Romania", "Hungary"),
+           ("Romania", "Bulgaria")]
+
+slovakia = [("Slovakia", "Czech Republic"),
+            ("Slovakia", "Austria"),
+            ("Slovakia", "Poland"),
+            ("Slovakia", "Hungary")]
+
+slovenia = [("Slovenia", "Italy"),
+            ("Slovenia", "Austria"),
+            ("Slovenia", "Croatia"),
+            ("Slovenia", "Hungary")]
+
+spain = [("Spain", "Portugal"),
+         ("Spain", "France")]
+
+sweden = [("Sweden", "Finland")]
+
 #####
 
