@@ -22,7 +22,7 @@ np.random.seed(seed)
 class GeoModel(mesa.Model):
     def __init__(self, cost_clean=.4, cost_dirty=.2, base_output_dirty=0.4, base_output_clean=0.2,
                  metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0.01,
-                 predisposition_decrease=0.000_05, pareto_optimal=False, seed=seed):
+                 predisposition_decrease=0.000_05, pareto_optimal=False, seed=seed, prob_neigh_influence = 0):
         self.seed = seed
 
         # initialise space and add countries
@@ -54,12 +54,14 @@ class GeoModel(mesa.Model):
         self.step_nr = 0
         self.modularity = 0
 
+
         # parameters
         self.quantitiy_max_traded = 0.001
         self.eta_trading = eta_global_trade
         self.pareto_optimal = pareto_optimal
         self.metab_e_scalar: float = float(metabolism_scalar_energy)
         self.metab_m_scalar: float = float(metabolism_scalar_money)
+        self.prob_neigh_influence =  prob_neigh_influence
 
         # parameters equivalent to taxation, subsidies and sanktions
         for agent in self.agents:
@@ -450,97 +452,97 @@ class GeoModel(mesa.Model):
 
 
 
-if __name__ == "__main__":
-    pd.set_option('display.max_columns', None)
-
-    now = time.time()
-    new = GeoModel()
-    new.run_model(1024)
-    print(time.time() - now)
-    data = new.datacollector.get_model_vars_dataframe()
-    a_data = new.datacollector.get_agent_vars_dataframe()
-    # plot welfare
-    plt.figure()
-    plt.xlabel("Timesteps, t")
-    plt.ylabel("Modularity, M")
-    plt.plot(data["modularity_ga"][100:])
-    plt.show()
-
-    # df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
-    # df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
-    # print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
-    # a_data["Welfare"].to_csv("Welfare_per_country.csv")
-
-
-    # # plot welfare
-    plt.figure()
-    plt.xlabel("Timesteps, t")
-    plt.ylabel("Welfare, W")
-    plt.plot(data["Welfare"])
-    plt.show()
-    # data["Welfare"].to_csv("w_noni")
-
-    # plt.figure()
-    # plt.xlabel("Timesteps, t")
-    # plt.ylabel("Average Price (1 E/m)")
-    # plt.plot(data["Price"])
-    # plt.show()
-
-    plt.figure()
-    plt.title("Adoption")
-    plt.plot(a_data.pivot_table(values='Clean_adoption', columns='AgentID', index='Step'), color='green')
-    plt.show()
-
-    # print()
-    # print("Welfare by country\n")
-    # print(df_by_country[:30])
-
-    # plt.figure()
-    # plt.title("wealth")
-    # plt.plot(a_data.pivot_table(values='w_energy', columns='AgentID', index='Step'), color='red', label='energy')
-    # plt.plot(a_data.pivot_table(values='w_money', columns='AgentID', index='Step'), color='green', label='money')
-    # plt.show()
-    # print("WELFARE MAX")
-    # my_pivot = a_data.pivot_table(values='Welfare', columns='AgentID', index='Step')
-    # print(my_pivot.max())
-    #
-    # plt.figure()
-    # plt.title("welfare per country")
-    # plt.plot(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
-    #
-    # plt.show()
-    # plt.figure()
-    # plt.ylabel("Trading volume, #trades/t")
-    # plt.xlabel("Timesteps, t")
-    # plt.plot(data["Trading_volume"])
-    # plt.show()
-    # data["Trading_volume"].to_csv("trading_vol.csv")
-
-    # last_state = df_by_country.iloc[-1]
-    # and
-
-    # plt.title("nr dirty per country")
-    # plt.plot(data["Pred_dirty"])
-    # plt.plot(df_by_country)
-    plt.figure()
-    plt.ylabel("Number plants")
-    plt.xlabel("Timesteps, t")
-    plt.plot(data["nr_dirty"], color='brown', label="dirty")
-    plt.plot(data["nr_clean"], color='green', label="clean")
-    plt.legend()
-    plt.show()
-    # plt.semilogy(data["Price"][10:])
-    # plt.plot(data["Welfare"][10:])
-    # plt.xlim([10,100])
-    # plt.xlim([10,100])
-
-    # plt.figure()
-    # plt.title("nr dirty avg")
-    # plt.plot(data["nr_dirty"], color='brown')
-    # plt.plot(data["nr_clean"], color='green')
-    # plt.show()
-
-    # print(a_data)
+# if __name__ == "__main__":
+#     pd.set_option('display.max_columns', None)
+#
+#     now = time.time()
+#     new = GeoModel()
+#     new.run_model(1024)
+#     print(time.time() - now)
+#     data = new.datacollector.get_model_vars_dataframe()
+#     a_data = new.datacollector.get_agent_vars_dataframe()
+#     # plot welfare
+#     plt.figure()
+#     plt.xlabel("Timesteps, t")
+#     plt.ylabel("Modularity, M")
+#     plt.plot(data["modularity_ga"][100:])
+#     plt.show()
+#
+#     # df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
+#     # df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
+#     # print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
+#     # a_data["Welfare"].to_csv("Welfare_per_country.csv")
+#
+#
+#     # # plot welfare
+#     plt.figure()
+#     plt.xlabel("Timesteps, t")
+#     plt.ylabel("Welfare, W")
+#     plt.plot(data["Welfare"])
+#     plt.show()
+#     # data["Welfare"].to_csv("w_noni")
+#
+#     # plt.figure()
+#     # plt.xlabel("Timesteps, t")
+#     # plt.ylabel("Average Price (1 E/m)")
+#     # plt.plot(data["Price"])
+#     # plt.show()
+#
+#     plt.figure()
+#     plt.title("Adoption")
+#     plt.plot(a_data.pivot_table(values='Clean_adoption', columns='AgentID', index='Step'), color='green')
+#     plt.show()
+#
+#     # print()
+#     # print("Welfare by country\n")
+#     # print(df_by_country[:30])
+#
+#     # plt.figure()
+#     # plt.title("wealth")
+#     # plt.plot(a_data.pivot_table(values='w_energy', columns='AgentID', index='Step'), color='red', label='energy')
+#     # plt.plot(a_data.pivot_table(values='w_money', columns='AgentID', index='Step'), color='green', label='money')
+#     # plt.show()
+#     # print("WELFARE MAX")
+#     # my_pivot = a_data.pivot_table(values='Welfare', columns='AgentID', index='Step')
+#     # print(my_pivot.max())
+#     #
+#     # plt.figure()
+#     # plt.title("welfare per country")
+#     # plt.plot(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
+#     #
+#     # plt.show()
+#     # plt.figure()
+#     # plt.ylabel("Trading volume, #trades/t")
+#     # plt.xlabel("Timesteps, t")
+#     # plt.plot(data["Trading_volume"])
+#     # plt.show()
+#     # data["Trading_volume"].to_csv("trading_vol.csv")
+#
+#     # last_state = df_by_country.iloc[-1]
+#     # and
+#
+#     # plt.title("nr dirty per country")
+#     # plt.plot(data["Pred_dirty"])
+#     # plt.plot(df_by_country)
+#     plt.figure()
+#     plt.ylabel("Number plants")
+#     plt.xlabel("Timesteps, t")
+#     plt.plot(data["nr_dirty"], color='brown', label="dirty")
+#     plt.plot(data["nr_clean"], color='green', label="clean")
+#     plt.legend()
+#     plt.show()
+#     # plt.semilogy(data["Price"][10:])
+#     # plt.plot(data["Welfare"][10:])
+#     # plt.xlim([10,100])
+#     # plt.xlim([10,100])
+#
+#     # plt.figure()
+#     # plt.title("nr dirty avg")
+#     # plt.plot(data["nr_dirty"], color='brown')
+#     # plt.plot(data["nr_clean"], color='green')
+#     # plt.show()
+#
+#     # print(a_data)
 
 ### legacy code #####
 # def load_countries(self):

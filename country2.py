@@ -36,12 +36,12 @@ class Country(mg.GeoAgent):
         # attributes set by model
         self.last_trade_success: bool = False
         self.last_trade_price_energy: float = 0.0001  # TODO this should probs not be this
+        self.prob_neigh_influence = self.model.prob_neigh_influence
 
         self.output_single_dirty: float = 0.001
         self.output_single_clean: float = 0.001
         self.cost_dirty: float = 0.001
         self.cost_clean: float = 0.001
-        np.random.seed = self.model.seed
         self.seed = self.model.seed
 
     def __repr__(self):
@@ -86,8 +86,9 @@ class Country(mg.GeoAgent):
             return
 
         # neighbourhood influence
-        # if self.build_neighbour_plant():
-        #     return
+        if np.default_rng(None).uniform() < self.prob_neigh_influence:
+            if self.build_neighbour_plant():
+                return
 
         build_d_welfare = self.would_be_welfare("dirty")
         build_c_welfare = self.would_be_welfare("clean")
