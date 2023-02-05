@@ -1,6 +1,4 @@
 from SALib.sample import saltelli
-import numpy as np
-from itertools import combinations
 import pandas as pd
 
 problem = {
