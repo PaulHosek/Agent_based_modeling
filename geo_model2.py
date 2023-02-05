@@ -125,7 +125,7 @@ class GeoModel(mesa.Model):
         adoption_dict = dict()
 
         for idx, agent in enumerate(self.agents):
-            adoption_dict[agent.unique_id] = network_analysis.euclidian_similarity(agent.nr_clean, agent.nr_dirty)
+            adoption_dict[agent.unique_id] = agent.clean_adoption
             welfares_list[idx] = agent.welfare
 
             total_welfare += agent.welfare
@@ -445,11 +445,10 @@ if __name__ == "__main__":
     # plt.plot(data["Price"])
     # plt.show()
 
-    # plt.figure()
-    # plt.title("trading volume")
-    # # plt.plot(df_by_country_m, color='green')
-    # plt.plot(data["Trading_volume"])
-    # plt.show()
+    plt.figure()
+    plt.title("Adoption")
+    plt.plot(a_data.pivot_table(values='Clean_adoption', columns='AgentID', index='Step'), color='green')
+    plt.show()
 
     # print()
     # print("Welfare by country\n")
