@@ -13,10 +13,10 @@ import time
 
 samples = pd.read_csv("Sobol_inputs.csv", index_col=0)
 # samples = samples[:51]      # PAUL
-# samples = samples[51:102]   # SOUVIK
-# samples = samples[102:153]  # TIJN
-# samples = samples[153:159]  # CONOR #204
-# samples = samples[204:]     # GAIA
+samples = samples[:2560]   # SOUVIK
+# samples = samples[2560:5120]  # TIJN
+# samples = samples[5120:7680]  # CONOR
+# samples = samples[7680:]     # GAIA
 
 # print(samples)
 
@@ -29,6 +29,7 @@ gini_list = []
 modularity_list = []
 
 for i in range(len(samples)):
+    print(i)
     new = geo_model2.GeoModel(cost_clean=samples.iloc[i][0],
                              cost_dirty=samples.iloc[i][1],
                              base_output_dirty=samples.iloc[i][2],
@@ -38,7 +39,7 @@ for i in range(len(samples)):
                              eta_global_trade= samples.iloc[i][6],
                              predisposition_decrease= samples.iloc[i][7])
 
-    steps = 5
+    steps = 1
     new.run_model(steps)
 
     nw1 = new.datacollector.get_agent_vars_dataframe()
@@ -65,10 +66,15 @@ output_gini = pd.DataFrame(data = gini_list,
 output_modularity = pd.DataFrame(data = modularity_list,
         columns = ['modularity'])
 
+#########################
+### CHANGE NAMES HERE!###
+#########################
+output_welfare.to_csv("Conor_Output_Welfare.csv")
+output_gini.to_csv("Conor_Output_Gini.csv")
+output_modularity.to_csv("Conor_Output_Modularity.csv")
 
-# TODO SAVE MY DATA BITTE
 
-#raise KeyboardInterrupt
+raise KeyboardInterrupt
 
 S_i_welfare = sobol.analyze(problem, output_welfare['output_welfare'].values, print_to_console=True, calc_second_order=False)
 #print(S_i_welfare)
