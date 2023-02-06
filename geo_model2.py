@@ -240,7 +240,7 @@ class GeoModel(mesa.Model):
 
         self.schedule.step()
         self.trading_cycle()
-        # self.tax_dirty()
+        self.tax_dirty()
 
         self.log_data()
 
@@ -448,21 +448,21 @@ class GeoModel(mesa.Model):
                 agent.w_money -= agent.w_money * 0.3
 
 
-# if __name__ == "__main__":
-#     pd.set_option('display.max_columns', None)
-#
-#     now = time.time()
-#     new = GeoModel()
-#     new.run_model(1000)
-#     print(time.time() - now)
-#     data = new.datacollector.get_model_vars_dataframe()
-#     a_data = new.datacollector.get_agent_vars_dataframe()
-#     # plot welfare
-#     plt.figure()
-#     plt.xlabel("Timesteps, t")
-#     plt.ylabel("Modularity, M")
-#     plt.plot(data["modularity_ga"][100:])
-#     plt.show()
+if __name__ == "__main__":
+    pd.set_option('display.max_columns', None)
+
+    now = time.time()
+    new = GeoModel()
+    new.run_model(1000)
+    print(time.time() - now)
+    data = new.datacollector.get_model_vars_dataframe()
+    a_data = new.datacollector.get_agent_vars_dataframe()
+    # plot welfare
+    plt.figure()
+    plt.xlabel("Timesteps, t")
+    plt.ylabel("Modularity, M")
+    plt.plot(data["modularity_ga"][100:])
+    plt.show()
 
     # df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
     # df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
@@ -471,11 +471,11 @@ class GeoModel(mesa.Model):
     #
     #
     #     # # plot welfare
-    #     plt.figure()
-    #     plt.xlabel("Timesteps, t")
-    #     plt.ylabel("Welfare, W")
-    #     plt.plot(data["Welfare"])
-    #     plt.show()
+    plt.figure()
+    plt.xlabel("Timesteps, t")
+    plt.ylabel("Welfare, W")
+    plt.plot(data["Welfare"])
+    plt.show()
     #     # data["Welfare"].to_csv("w_noni")
     #
     #     # plt.figure()
@@ -520,13 +520,13 @@ class GeoModel(mesa.Model):
     #     # plt.title("nr dirty per country")
     #     # plt.plot(data["Pred_dirty"])
     #     # plt.plot(df_by_country)
-    # plt.figure()
-    # plt.ylabel("Number plants")
-    # plt.xlabel("Timesteps, t")
-    # plt.plot(data["nr_dirty"], color='brown', label="dirty")
-    # plt.plot(data["nr_clean"], color='green', label="clean")
-    # plt.legend()
-    # plt.show()
+    plt.figure()
+    plt.ylabel("Number plants")
+    plt.xlabel("Timesteps, t")
+    plt.plot(data["nr_dirty"], color='brown', label="dirty")
+    plt.plot(data["nr_clean"], color='green', label="clean")
+    plt.legend()
+    plt.show()
 #     # plt.semilogy(data["Price"][10:])
 #     # plt.plot(data["Welfare"][10:])
 #     # plt.xlim([10,100])
