@@ -218,7 +218,7 @@ class Country(mg.GeoAgent):
 
     def calculate_adoption(self) -> None:
         """Calculate green energy adoption."""
-        self.clean_adoption = self.nr_clean - self.nr_dirty
+        self.clean_adoption = self.nr_clean/ (self.nr_dirty+self.nr_clean)
 
 
     def build_plant(self, type_plant: str):
