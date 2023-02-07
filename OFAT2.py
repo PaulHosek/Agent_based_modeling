@@ -16,8 +16,9 @@ label_params = ['cost_clean',
 
 params = pd.DataFrame(data=[value_params],columns=label_params)
 
+parameter = 'eta_global_trade'  #This is the varied parameter
 
-ni = 10 # number of samples of each of the 10
+ni = 100 # number of samples of each of the 10
 total_runs= ni*10
 
 def vary_params(var):
@@ -51,7 +52,7 @@ def keep_same_values(func,df, var):
     new_df[var] = df1
     return new_df
 
-df_new_params = keep_same_values(vary_params('eta_global_trade'),params, 'eta_global_trade')
+df_new_params = keep_same_values(vary_params(parameter),params, parameter)
 
 t = 0
 i = ni
@@ -125,23 +126,24 @@ outputs_modularity1 = pd.DataFrame(data = mean_modularity_list,
 outputs_modularity2 = pd.DataFrame(data = ci_modularity_list,
         columns = ['modularity_ci'])
 
+#Plotting
 welfare_upperci = outputs_welfare1['welfare_mean'] + outputs_welfare2['welfare_ci']
 welfare_lowerci = outputs_welfare1['welfare_mean'] - outputs_welfare2['welfare_ci']
-plt.plot(np.linspace(0.01,1,10), mean_welfare_list)
-plt.fill_between(np.linspace(0.01,1,10), welfare_lowerci, welfare_upperci, alpha=0.5)
-plt.title('OFAT welfare, parameter changing: eta')
+plt.plot(np.linspace(0.01,1,10), mean_welfare_list, color = 'k')
+plt.fill_between(np.linspace(0.01,1,10), welfare_lowerci, welfare_upperci, alpha=0.25, color = 'b')
+plt.title(f'OFAT welfare, parameter changing: {parameter}')
 plt.show()
 
 gini_upperci = outputs_gini1['gini_mean'] + outputs_gini2['gini_ci']
 gini_lowerci = outputs_gini1['gini_mean'] - outputs_gini2['gini_ci']
-plt.plot(np.linspace(0.01,1,10), mean_gini_list)
-plt.fill_between(np.linspace(0.01,1,10), gini_lowerci, gini_upperci, alpha=0.5)
-plt.title('OFAT GINI, parameter changing: eta')
+plt.plot(np.linspace(0.01,1,10), mean_gini_list, color = 'k')
+plt.fill_between(np.linspace(0.01,1,10), gini_lowerci, gini_upperci, alpha=0.25, color = 'r')
+plt.title(f'OFAT GINI, parameter changing: {parameter}')
 plt.show()
 
 modularity_upperci = outputs_modularity1['modularity_mean'] + outputs_modularity2['modularity_ci']
 modularity_lowerci = outputs_modularity1['modularity_mean'] - outputs_modularity2['modularity_ci']
-plt.plot(np.linspace(0.01,1,10), mean_modularity_list)
-plt.fill_between(np.linspace(0.01,1,10), modularity_lowerci, modularity_upperci, alpha=0.5)
-plt.title('OFAT modularity, parameter changing: eta')
+plt.plot(np.linspace(0.01,1,10), mean_modularity_list, color = 'k')
+plt.fill_between(np.linspace(0.01,1,10), modularity_lowerci, modularity_upperci, alpha=0.25, color = 'g')
+plt.title(f'OFAT modularity, parameter changing: {parameter}')
 plt.show()
