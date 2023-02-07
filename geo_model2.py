@@ -14,18 +14,19 @@ from scipy.stats.mstats import gmean
 import time
 import network_analysis
 
-seed = 187758
-
-np.random.seed(seed)
+seed = 18775 #8
+#
+# np.random.seed(seed)
 
 
 class GeoModel(mesa.Model):
     def __init__(self, cost_clean=.02, cost_dirty=.02, base_output_dirty=0.8, base_output_clean=0.4,
                  metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0.01,
-                 predisposition_decrease=0.000_01, pareto_optimal=False, seed=seed, prob_neigh_influence=0):
+                 predisposition_decrease=0.000_01, pareto_optimal=False, seed=seed, prob_neigh_influence=0,tax=False):
 
         self.seed = seed
         self.prob_neigh_influence = prob_neigh_influence
+        self.tax = tax
 
         # initialise space and add countries
         self.space = mg.GeoSpace(crs="4326")
@@ -240,7 +241,8 @@ class GeoModel(mesa.Model):
 
         self.schedule.step()
         self.trading_cycle()
-        self.tax_dirty()
+        if self.tax:
+            self.tax_dirty()
 
         self.log_data()
 

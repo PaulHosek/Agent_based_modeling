@@ -25,17 +25,15 @@ def split(a, n):
 
 split_gaia = split(samples, 4)
 
-# samples = split_gaia[0] # Paul #TODO CHANGE HERE
+samples = split_gaia[0] # Paul
 # samples = split_gaia[1] # Tijn
 # samples = split_gaia[2] # Souvik
 # samples = split_gaia[3] # Conor
 
 # samples = samples[]
-raise KeyboardInterrupt
 
 # print(samples)
 
-# TODO slice your region here before removing the KeyboardIntterupt
 
 #raise KeyboardInterrupt
 
@@ -81,9 +79,9 @@ output_modularity = pd.DataFrame(data = modularity_list,
 #########################
 ### CHANGE NAMES HERE!###
 #########################
-output_welfare.to_csv("Conor_Output_Welfare.csv")
-output_gini.to_csv("Conor_Output_Gini.csv")
-output_modularity.to_csv("Conor_Output_Modularity.csv")
+output_welfare.to_csv("Gaia0Paul_Output_Welfare.csv")
+output_gini.to_csv("Gaia0Paul_Output_Gini.csv")
+output_modularity.to_csv("Gaia0Paul_Output_Modularity.csv")
 
 
 raise KeyboardInterrupt

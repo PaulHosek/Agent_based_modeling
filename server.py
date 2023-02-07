@@ -89,6 +89,6 @@ plant_chart = ChartModule([{"Label": 'avg_nr_dirty', "Color": "Tomato"},
 #     {"Label": 'member_eff', "Color": "RoyalBlue"},
 # ], 200, 500)
 
-server = ModularServer(GeoModel, [map_welfare, plant_chart, avg_welfare], "EU Energy Model", model_params)
+server = ModularServer(GeoModel, [map_plants, plant_chart, avg_welfare], "EU Energy Model", model_params)
 
 server.launch()
