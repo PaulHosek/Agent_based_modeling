@@ -20,12 +20,11 @@ np.random.seed(seed)
 
 
 class GeoModel(mesa.Model):
-    def __init__(self, cost_clean=.02, cost_dirty=.02, base_output_dirty=0.8, base_output_clean=0.4,
+    def __init__(self, cost_clean=.4, cost_dirty=.2, base_output_dirty=0.4, base_output_clean=0.2,
                  metabolism_scalar_energy=1, metabolism_scalar_money=1, eta_global_trade=0.01,
-                 predisposition_decrease=0.000_01, pareto_optimal=False, seed=seed, prob_neigh_influence=0):
-
+                 predisposition_decrease=0.000_05, pareto_optimal=False, seed=seed, prob_neigh_influence = 0):
         self.seed = seed
-        self.prob_neigh_influence = prob_neigh_influence
+        self.prob_neigh_influence =  prob_neigh_influence
 
         # initialise space and add countries
         self.space = mg.GeoSpace(crs="4326")
@@ -56,12 +55,14 @@ class GeoModel(mesa.Model):
         self.step_nr = 0
         self.modularity = 0
 
+
         # parameters
         self.quantitiy_max_traded = 0.001
         self.eta_trading = eta_global_trade
         self.pareto_optimal = pareto_optimal
         self.metab_e_scalar: float = float(metabolism_scalar_energy)
         self.metab_m_scalar: float = float(metabolism_scalar_money)
+
 
         # parameters equivalent to taxation, subsidies and sanktions
         for agent in self.agents:
@@ -98,9 +99,9 @@ class GeoModel(mesa.Model):
                                                                                 "nr_dirty": "nr_dirty",
                                                                                 "nr_clean": "nr_clean",
                                                                                 "w_energy": "w_energy",
-                                                                                "w_money": "w_money"})
-        self.init_random()
-        # self.load_countries()
+                                                                                 "w_money": "w_money"})
+        # self.init_random()
+        self.load_countries()
         self.log_data()
 
     def log_data(self) -> None:
@@ -135,7 +136,7 @@ class GeoModel(mesa.Model):
             pred_dirty += agent.pred_dirty
             total_nr_clean += agent.nr_clean
             total_nr_dirty += agent.nr_dirty
-            if agent.last_trade_price_energy != 100_000_000:
+            if agent.last_trade_price_energy != 0.0001:
                 prices[idx] = agent.last_trade_price_energy
 
         # avg proportion clean plants
@@ -175,20 +176,19 @@ class GeoModel(mesa.Model):
     def init_random(self):
         rands = np.random.default_rng(self.seed).uniform(low=0.01, size=len(self.agents) * 5)
         rands = rands.reshape((5, len(self.agents)))
-        rands_m = np.random.default_rng(self.seed).uniform(low=0.4, high=0.6, size=(len(self.agents) * 2))
+        rands_m = np.random.default_rng(self.seed).uniform(low=0.4, high=0.6, size=(len(self.agents)*2))
         rands_m = rands_m.reshape((2, len(self.agents)))
 
         for i, agent in enumerate(self.agents):
             self.schedule.add(agent)
             rands1 = rands[:, i]
-            rands_m1 = rands[:, i]
-            agent.w_energy = rands1[0]
-            agent.w_money = rands1[1]
-            agent.m_energy = rands_m1[0] * self.metab_e_scalar
-            agent.m_money = rands_m1[1] * self.metab_m_scalar
-            agent.pred_dirty = rands1[2]
-            agent.pred_clean = rands1[3]
-            agent.influx_money = rands1[4]
+            agent.w_energy = rands[0]
+            agent.w_money = rands[1]
+            agent.m_energy = rands_m[0] * self.metab_e_scalar
+            agent.m_money = rands_m[1] * self.metab_m_scalar
+            agent.pred_dirty = rands[2]
+            agent.pred_clean = rands[3]
+            agent.influx_money = rands[4]
             agent.collect()
             agent.calculate_welfare()
             agent.calculate_mrs()
@@ -240,7 +240,7 @@ class GeoModel(mesa.Model):
 
         self.schedule.step()
         self.trading_cycle()
-        self.tax_dirty()
+        # self.tax_dirty()
 
         self.log_data()
 
@@ -254,6 +254,7 @@ class GeoModel(mesa.Model):
             c. trade maximally 0.1 of a resource and leave 0.3 as a buffer
                 - no trade is made if the country has <0.3 of the resource of interest
         """
+
 
         def fast_choice(input_list):
             return input_list[np.random.default_rng(None).integers(0, len(input_list))]
@@ -271,7 +272,7 @@ class GeoModel(mesa.Model):
             # if country is an island, don't trade
             if not len(all_neighs):
                 cur_country.last_trade_success = False
-                cur_country.last_trade_price_energy = 100_000_000
+                cur_country.last_trade_price_energy = 0.0001
                 continue
 
             cur_neigh = fast_choice(all_neighs)
@@ -280,8 +281,8 @@ class GeoModel(mesa.Model):
             if cur_country.mrs == cur_neigh.mrs:
                 cur_country.last_trade_success = False
                 cur_neigh.last_trade_success = False
-                cur_country.last_trade_price_energy = 100_000_000
-                cur_neigh.last_trade_price_energy = 100_000_000
+                cur_country.last_trade_price_energy = 0.0001
+                cur_neigh.last_trade_price_energy = 0.0001
 
                 continue
             else:
@@ -327,8 +328,8 @@ class GeoModel(mesa.Model):
                 if energy_left < energy or money_left < money:
                     cur_country.last_trade_success = False
                     cur_neigh.last_trade_success = False
-                    cur_country.last_trade_price_energy = 100_000_000
-                    cur_neigh.last_trade_price_energy = 100_000_000
+                    cur_country.last_trade_price_energy = 0.0001
+                    cur_neigh.last_trade_price_energy = 0.0001
                     continue
 
                 if self.pareto_optimal:
@@ -381,8 +382,8 @@ class GeoModel(mesa.Model):
                 if energy_left < energy or money_left < money:
                     cur_country.last_trade_success = False
                     cur_neigh.last_trade_success = False
-                    cur_country.last_trade_price_energy = 100_000_000
-                    cur_neigh.last_trade_price_energy = 100_000_000
+                    cur_country.last_trade_price_energy = 0.0001
+                    cur_neigh.last_trade_price_energy = 0.0001
                     continue
 
                 if self.pareto_optimal:
@@ -424,6 +425,7 @@ class GeoModel(mesa.Model):
         new_welfare_s = np.power(selling_c.w_energy + selling_c.produced_energy - energy,
                                  selling_c.m_energy / mt) * np.power(selling_c.w_money + money, selling_c.m_money / mt)
 
+        print(new_welfare_b, buying_c.welfare, new_welfare_s, selling_c.welfare)
         if new_welfare_b < buying_c.welfare or new_welfare_s < selling_c.welfare:
             return False
         else:
@@ -448,85 +450,88 @@ class GeoModel(mesa.Model):
                 agent.w_money -= agent.w_money * 0.3
 
 
-if __name__ == "__main__":
-    pd.set_option('display.max_columns', None)
 
-    now = time.time()
-    new = GeoModel()
-    new.run_model(1000)
-    print(time.time() - now)
-    data = new.datacollector.get_model_vars_dataframe()
-    a_data = new.datacollector.get_agent_vars_dataframe()
-    # plot welfare
-    plt.figure()
-    plt.xlabel("Timesteps, t")
-    plt.ylabel("Modularity, M")
-    plt.plot(data["modularity_ga"][100:])
-    plt.show()
 
-    # df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
-    # df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
-    # print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
-    # a_data["Welfare"].to_csv("Welfare_per_country.csv")
-    #
-    #
-    #     # # plot welfare
-    plt.figure()
-    plt.xlabel("Timesteps, t")
-    plt.ylabel("Welfare, W")
-    plt.plot(data["Welfare"])
-    plt.show()
-    #     # data["Welfare"].to_csv("w_noni")
-    #
-    #     # plt.figure()
-    #     # plt.xlabel("Timesteps, t")
-    #     # plt.ylabel("Average Price (1 E/m)")
-    #     # plt.plot(data["Price"])
-    #     # plt.show()
-    #
-    #     plt.figure()
-    #     plt.title("Adoption")
-    #     plt.plot(a_data.pivot_table(values='Clean_adoption', columns='AgentID', index='Step'), color='green')
-    #     plt.show()
-    #
-    #     # print()
-    #     # print("Welfare by country\n")
-    #     # print(df_by_country[:30])
-    #
-    #     # plt.figure()
-    #     # plt.title("wealth")
-    #     # plt.plot(a_data.pivot_table(values='w_energy', columns='AgentID', index='Step'), color='red', label='energy')
-    #     # plt.plot(a_data.pivot_table(values='w_money', columns='AgentID', index='Step'), color='green', label='money')
-    #     # plt.show()
-    #     # print("WELFARE MAX")
-    #     # my_pivot = a_data.pivot_table(values='Welfare', columns='AgentID', index='Step')
-    #     # print(my_pivot.max())
-    #     #
-    # plt.figure()
-    # plt.title("welfare per country")
-    # plt.plot(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
-    #
-    # plt.show()
-    #     # plt.figure()
-    #     # plt.ylabel("Trading volume, #trades/t")
-    #     # plt.xlabel("Timesteps, t")
-    #     # plt.plot(data["Trading_volume"])
-    #     # plt.show()
-    #     # data["Trading_volume"].to_csv("trading_vol.csv")
-    #
-    #     # last_state = df_by_country.iloc[-1]
-    #     # and
-    #
-    #     # plt.title("nr dirty per country")
-    #     # plt.plot(data["Pred_dirty"])
-    #     # plt.plot(df_by_country)
-    plt.figure()
-    plt.ylabel("Number plants")
-    plt.xlabel("Timesteps, t")
-    plt.plot(data["nr_dirty"], color='brown', label="dirty")
-    plt.plot(data["nr_clean"], color='green', label="clean")
-    plt.legend()
-    plt.show()
+
+# if __name__ == "__main__":
+#     pd.set_option('display.max_columns', None)
+#
+#     now = time.time()
+#     new = GeoModel()
+#     new.run_model(1024)
+#     print(time.time() - now)
+#     data = new.datacollector.get_model_vars_dataframe()
+#     a_data = new.datacollector.get_agent_vars_dataframe()
+#     # plot welfare
+#     plt.figure()
+#     plt.xlabel("Timesteps, t")
+#     plt.ylabel("Modularity, M")
+#     plt.plot(data["modularity_ga"][100:])
+#     plt.show()
+#
+#     # df_by_country_m = a_data.pivot_table(values='w_money', columns='AgentID', index='Step')
+#     # df_by_country_e = a_data.pivot_table(values='w_energy', columns='AgentID', index='Step')
+#     # print(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
+#     # a_data["Welfare"].to_csv("Welfare_per_country.csv")
+#
+#
+#     # # plot welfare
+#     plt.figure()
+#     plt.xlabel("Timesteps, t")
+#     plt.ylabel("Welfare, W")
+#     plt.plot(data["Welfare"])
+#     plt.show()
+#     # data["Welfare"].to_csv("w_noni")
+#
+#     # plt.figure()
+#     # plt.xlabel("Timesteps, t")
+#     # plt.ylabel("Average Price (1 E/m)")
+#     # plt.plot(data["Price"])
+#     # plt.show()
+#
+#     plt.figure()
+#     plt.title("Adoption")
+#     plt.plot(a_data.pivot_table(values='Clean_adoption', columns='AgentID', index='Step'), color='green')
+#     plt.show()
+#
+#     # print()
+#     # print("Welfare by country\n")
+#     # print(df_by_country[:30])
+#
+#     # plt.figure()
+#     # plt.title("wealth")
+#     # plt.plot(a_data.pivot_table(values='w_energy', columns='AgentID', index='Step'), color='red', label='energy')
+#     # plt.plot(a_data.pivot_table(values='w_money', columns='AgentID', index='Step'), color='green', label='money')
+#     # plt.show()
+#     # print("WELFARE MAX")
+#     # my_pivot = a_data.pivot_table(values='Welfare', columns='AgentID', index='Step')
+#     # print(my_pivot.max())
+#     #
+#     # plt.figure()
+#     # plt.title("welfare per country")
+#     # plt.plot(a_data.pivot_table(values='Welfare', columns='AgentID', index='Step'))
+#     #
+#     # plt.show()
+#     # plt.figure()
+#     # plt.ylabel("Trading volume, #trades/t")
+#     # plt.xlabel("Timesteps, t")
+#     # plt.plot(data["Trading_volume"])
+#     # plt.show()
+#     # data["Trading_volume"].to_csv("trading_vol.csv")
+#
+#     # last_state = df_by_country.iloc[-1]
+#     # and
+#
+#     # plt.title("nr dirty per country")
+#     # plt.plot(data["Pred_dirty"])
+#     # plt.plot(df_by_country)
+#     plt.figure()
+#     plt.ylabel("Number plants")
+#     plt.xlabel("Timesteps, t")
+#     plt.plot(data["nr_dirty"], color='brown', label="dirty")
+#     plt.plot(data["nr_clean"], color='green', label="clean")
+#     plt.legend()
+#     plt.show()
 #     # plt.semilogy(data["Price"][10:])
 #     # plt.plot(data["Welfare"][10:])
 #     # plt.xlim([10,100])

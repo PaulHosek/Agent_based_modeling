@@ -12,13 +12,11 @@ import numpy as np
 import time
 
 samples = pd.read_csv("Sobol_inputs.csv", index_col=0)
-print(len(samples))
-
 # samples = samples[:51]      # PAUL
 # samples = samples[:2560]   # SOUVIK
 # samples = samples[2560:5120]  # TIJN
 # samples = samples[5120:7680]  # CONOR
-samples = samples[7680:]     #
+samples = samples[7680:]     # GAIA
 def split(a, n):
     k, m = divmod(len(a), n)
     return list(a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n))
@@ -27,12 +25,10 @@ split_gaia = split(samples, 4)
 
 # samples = split_gaia[0] # Paul #TODO CHANGE HERE
 # samples = split_gaia[1] # Tijn
-samples = split_gaia[2] # Souvik
-# samples = split_gaia[3] # Conor
+# samples = split_gaia[2] # Souvik
+samples = split_gaia[3] # Conor
 
 # samples = samples[]
-#raise KeyboardInterrupt
-
 # print(samples)
 
 # TODO slice your region here before removing the KeyboardIntterupt
@@ -81,9 +77,9 @@ output_modularity = pd.DataFrame(data = modularity_list,
 #########################
 ### CHANGE NAMES HERE!###
 #########################
-output_welfare.to_csv("Gaia_2_Output_Welfare.csv")
-output_gini.to_csv("Gaia_2_Output_Gini.csv")
-output_modularity.to_csv("Gaia_2_Output_Modularity.csv")
+output_welfare.to_csv("Gaia3_Output_Welfare.csv")
+output_gini.to_csv("Gaia3_Output_Gini.csv")
+output_modularity.to_csv("Gaia3_Output_Modularity.csv")
 
 
 raise KeyboardInterrupt
