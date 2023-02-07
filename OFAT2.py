@@ -17,8 +17,9 @@ label_params = ['cost_clean',
 params = pd.DataFrame(data=[value_params],columns=label_params)
 
 parameter = 'eta_global_trade'  #This is the varied parameter
+steps = 100 # amount of steps per run
 
-ni = 100 # number of samples of each of the 10
+ni = 10 # number of samples of each of the 10
 total_runs= ni*10
 
 def vary_params(var):
@@ -77,17 +78,17 @@ for r in range(10):
                                   metabolism_scalar_money=indexed_df.iloc[ind][5],
                                   eta_global_trade=indexed_df.iloc[ind][6],
                                   predisposition_decrease=indexed_df.iloc[ind][7])
-        new.run_model(10)
+        new.run_model(steps)
         nw1 = new.datacollector.get_agent_vars_dataframe()
         nw2 = new.datacollector.get_model_vars_dataframe()
 
         df_by_country_welfare = nw1.pivot_table(values='Welfare', columns='AgentID', index='Step')
         avg_last_welfare.append(np.mean(df_by_country_welfare.iloc[-1]))
 
-        last_gini = nw2["Gini_welfare"][ni]
+        last_gini = nw2["Gini_welfare"][steps]
         gini_list.append(last_gini)
 
-        last_modularity = nw2["modularity_ga"][ni]
+        last_modularity = nw2["modularity_ga"][steps]
         modularity_list.append(last_modularity)
 
     #calculating the mean and ci of 'ni' samples (happens 10 times)
