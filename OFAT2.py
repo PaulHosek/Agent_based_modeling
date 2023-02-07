@@ -17,7 +17,7 @@ label_params = ['cost_clean',
 params = pd.DataFrame(data=[value_params],columns=label_params)
 
 
-ni = 100 # number of samples of each of the 10
+ni = 10 # number of samples of each of the 10
 total_runs= ni*10
 
 def vary_params(var):
@@ -55,11 +55,17 @@ df_new_params = keep_same_values(vary_params('eta_global_trade'),params, 'eta_gl
 
 t = 0
 i = ni
-mean_list = []
-ci_list = []
+mean_welfare_list = []
+mean_gini_list = []
+mean_modularity_list = []
+ci_welfare_list = []
+ci_gini_list = []
+ci_modularity_list = []
 for r in range(10):
     print(i)
     avg_last_welfare = []
+    gini_list = []
+    modularity_list = []
     indexed_df = df_new_params[t:i]
     for ind in range(len(indexed_df)):
         new = geo_model2.GeoModel(cost_clean=indexed_df.iloc[ind][0],
@@ -70,33 +76,72 @@ for r in range(10):
                                   metabolism_scalar_money=indexed_df.iloc[ind][5],
                                   eta_global_trade=indexed_df.iloc[ind][6],
                                   predisposition_decrease=indexed_df.iloc[ind][7])
-        new.run_model(1200)
+        new.run_model(10)
         nw1 = new.datacollector.get_agent_vars_dataframe()
         nw2 = new.datacollector.get_model_vars_dataframe()
 
         df_by_country_welfare = nw1.pivot_table(values='Welfare', columns='AgentID', index='Step')
         avg_last_welfare.append(np.mean(df_by_country_welfare.iloc[-1]))
 
+        last_gini = nw2["Gini_welfare"][ni]
+        gini_list.append(last_gini)
+
+        last_modularity = nw2["modularity_ga"][ni]
+        modularity_list.append(last_modularity)
+
+    #calculating the mean and ci of 'ni' samples (happens 10 times)
+    mean_gini = np.mean(gini_list)
+    mean_modularity = np.mean(modularity_list)
     mean_avg_last_welfare = np.mean(avg_last_welfare)
-    ci = 1.96 * np.std(avg_last_welfare) / np.sqrt(len(avg_last_welfare))
-    mean_list.append(mean_avg_last_welfare)
-    ci_list.append(ci)
+
+    ci_welfare = 1.96 * np.std(avg_last_welfare) / np.sqrt(len(avg_last_welfare))
+    ci_gini = 1.96 * np.std(gini_list) / np.sqrt(len(gini_list))
+    ci_modularity = 1.96 * np.std(modularity_list) / np.sqrt(len(modularity_list))
+
+    #appending the 10 values for each
+    mean_welfare_list.append(mean_avg_last_welfare)
+    ci_welfare_list.append(ci_welfare)
+    mean_gini_list.append(mean_gini)
+    ci_gini_list.append(ci_gini)
+    mean_modularity_list.append(mean_modularity)
+    ci_modularity_list.append(ci_modularity)
 
     t+=ni
     i+=ni
 
+#dunno if i need this part
+outputs_welfare1 = pd.DataFrame(data = mean_welfare_list,
+        columns = ['welfare_mean'])
+outputs_welfare2 = pd.DataFrame(data = ci_welfare_list,
+        columns = ['welfare_ci'])
 
-outputs1 = pd.DataFrame(data = mean_list,
-        columns = ['output_welfare'])
+outputs_gini1 = pd.DataFrame(data = mean_gini_list,
+        columns = ['gini_mean'])
+outputs_gini2 = pd.DataFrame(data = ci_gini_list,
+        columns = ['gini_ci'])
 
-outputs2 = pd.DataFrame(data = ci_list,
-        columns = ['ci'])
+outputs_modularity1 = pd.DataFrame(data = mean_modularity_list,
+        columns = ['modularity_mean'])
+outputs_modularity2 = pd.DataFrame(data = ci_modularity_list,
+        columns = ['modularity_ci'])
 
-upperci = outputs1['output_welfare'] + outputs2['ci']
-print(upperci)
-lowerci = outputs1['output_welfare'] - outputs2['ci']
-plt.plot(np.linspace(0.01,1,10), mean_list)
-plt.fill_between(np.linspace(0.01,1,10), lowerci, upperci, alpha=0.5)
-
+welfare_upperci = outputs_welfare1['welfare_mean'] + outputs_welfare2['welfare_ci']
+welfare_lowerci = outputs_welfare1['welfare_mean'] - outputs_welfare2['welfare_ci']
+plt.plot(np.linspace(0.01,1,10), mean_welfare_list)
+plt.fill_between(np.linspace(0.01,1,10), welfare_lowerci, welfare_upperci, alpha=0.5)
 plt.title('OFAT welfare, parameter changing: eta')
+plt.show()
+
+gini_upperci = outputs_gini1['gini_mean'] + outputs_gini2['gini_ci']
+gini_lowerci = outputs_gini1['gini_mean'] - outputs_gini2['gini_ci']
+plt.plot(np.linspace(0.01,1,10), mean_gini_list)
+plt.fill_between(np.linspace(0.01,1,10), gini_lowerci, gini_upperci, alpha=0.5)
+plt.title('OFAT GINI, parameter changing: eta')
+plt.show()
+
+modularity_upperci = outputs_modularity1['modularity_mean'] + outputs_modularity2['modularity_ci']
+modularity_lowerci = outputs_modularity1['modularity_mean'] - outputs_modularity2['modularity_ci']
+plt.plot(np.linspace(0.01,1,10), mean_modularity_list)
+plt.fill_between(np.linspace(0.01,1,10), modularity_lowerci, modularity_upperci, alpha=0.5)
+plt.title('OFAT modularity, parameter changing: eta')
 plt.show()

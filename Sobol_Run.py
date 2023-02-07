@@ -13,9 +13,9 @@ import time
 
 samples = pd.read_csv("Sobol_inputs.csv", index_col=0)
 # samples = samples[:51]      # PAUL
-samples = samples[:2560]   # SOUVIK
+# samples = samples[:2560]   # SOUVIK
 # samples = samples[2560:5120]  # TIJN
-# samples = samples[5120:7680]  # CONOR
+samples = samples[5120:7680]  # CONOR
 # samples = samples[7680:]     # GAIA
 
 # print(samples)
@@ -39,7 +39,7 @@ for i in range(len(samples)):
                              eta_global_trade= samples.iloc[i][6],
                              predisposition_decrease= samples.iloc[i][7])
 
-    steps = 1
+    steps = 1000
     new.run_model(steps)
 
     nw1 = new.datacollector.get_agent_vars_dataframe()
@@ -52,9 +52,6 @@ for i in range(len(samples)):
     modularity_list.append(last_modularity)
 
     df_by_country_welfare = nw1.pivot_table(values = 'Welfare', columns = 'AgentID', index = 'Step')
-    df_by_country_gini = nw1.pivot_table(values='Welfare', columns='AgentID', index='Step')
-    df_by_country_mod = nw1.pivot_table(values='Welfare', columns='AgentID', index='Step')
-
     avg_last_welfare.append(np.mean(df_by_country_welfare.iloc[-1]))
 
 output_welfare = pd.DataFrame(data = avg_last_welfare,
