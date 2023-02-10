@@ -119,7 +119,8 @@ def plot_index(s, params, i, title=''):
     plt.ylim([-0.2, len(indices) - 1 + 0.2])
     plt.yticks(range(l), params)
 
-    plt.yticks(range(l),reversed([r"$\phi$", r"$\eta$", r"$\lambda_m$", r"$\lambda_e$", r"$\beta_c$", r"$\beta_d$", r"$\gamma_d$", r"$\gamma_c$",]))
+    # plt.yticks(range(l),reversed([r"$\phi$", r"$\eta$", r"$\lambda_m$", r"$\lambda_e$", r"$\beta_c$", r"$\beta_d$", r"$\gamma_d$", r"$\gamma_c$",]))
+    plt.yticks(range(l),reversed([r"Predis. Decrease, $\phi$", r"Global Trade, $\eta$", r"Metab. money, $\lambda_m$", r"Metab. energy, $\lambda_e$", r"Output clean, $\beta_c$", r"Output dirty, $\beta_d$", r"Cost dirty, $\gamma_d$", r"Cost clean, $\gamma_c$",]))
     plt.errorbar(indices, range(l), color = 'k', ecolor = 'b', xerr=errors, linestyle='None', marker='o', capsize = 3, linewidth = 1)
     plt.axvline(0, c='k')
     plt.tight_layout(pad=1.5)
