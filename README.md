@@ -7,7 +7,7 @@
 * Gaia Pantaleo
 * Conor Gouraud
 * Souvik Chakraborty
-* Tijn Schickedantz
+* Tijn Schickendantz
 
 ## Program Overview
 This work tries to model the adoption of green energy in the EU with an agent based model. 
