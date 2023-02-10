@@ -11,6 +11,9 @@ from Sobol_input_generator import *
 import numpy as np
 import time
 import pandas as pd
+import matplotlib
+
+matplotlib.rcParams.update({'font.size': 14})
 
 
 # Gaia0Paul_Output_Welfare = pd.read_csv(r'C:\Users\Souvik Chakraborty\Agent_based_modeling\Gaia0Paul_Output_Welfare.csv')
@@ -96,7 +99,7 @@ def plot_index(s, params, i, title=''):
         i (str): string that indicates what order the sensitivity is.
         title (str): title for the plot
     """
-
+    plt.figure()
     if i == '2':
         p = len(params)
         params = list(combinations(params, 2))
@@ -115,9 +118,16 @@ def plot_index(s, params, i, title=''):
     plt.title(title)
     plt.ylim([-0.2, len(indices) - 1 + 0.2])
     plt.yticks(range(l), params)
+
+    plt.yticks(range(l),reversed([r"$\phi$", r"$\eta$", r"$\lambda_m$", r"$\lambda_e$", r"$\beta_c$", r"$\beta_d$", r"$\gamma_d$", r"$\gamma_c$",]))
     plt.errorbar(indices, range(l), color = 'k', ecolor = 'b', xerr=errors, linestyle='None', marker='o', capsize = 3, linewidth = 1)
     plt.axvline(0, c='k')
-plt.figure()
+    plt.tight_layout(pad=1.5)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.savefig(f"figures/sobol/{title}")
+
+
 
 for Si in [S_i_welfare]:
     # First order
@@ -126,7 +136,7 @@ for Si in [S_i_welfare]:
     # plot_index(Si, problem['names'], '2', 'Second order sensitivity')
     # Total order
     plot_index(Si, problem['names'], 'T', 'Welfare Total order sensitivity')
-plt.show()
+
 
 for Si in [S_i_gini]:
     # First order
@@ -135,13 +145,14 @@ for Si in [S_i_gini]:
     # plot_index(Si, problem['names'], '2', 'Second order sensitivity')
     # Total order
     plot_index(Si, problem['names'], 'T', 'Gini Total order sensitivity')
-plt.show()
 
+
+plt.figure()
 for Si in [S_i_modularity]:
     # First order
+
     plot_index(Si, problem['names'], '1', 'Modularity First order sensitivity')
     # Second order
     # plot_index(Si, problem['names'], '2', 'Second order sensitivity')
     # Total order
     plot_index(Si, problem['names'], 'T', 'Modularity Total order sensitivity')
-plt.show()
