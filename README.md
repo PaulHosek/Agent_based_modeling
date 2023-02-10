@@ -4,10 +4,11 @@
 ## Contributors:
 
 * Paul Hosek
+* Tijn Schickendantz
 * Gaia Pantaleo
 * Conor Gouraud
 * Souvik Chakraborty
-* Tijn Schickendantz
+
 
 ## Program Overview
 This work tries to model the adoption of green energy in the EU with an agent based model. 
@@ -21,6 +22,7 @@ maximizes the agents welfare.
 * Python 3.9+
 * math
 * numpy
+* numba
 * matplotlib
 * pandas
 * csv
@@ -30,15 +32,12 @@ maximizes the agents welfare.
 * time
 * network_analysis
 * SAlib
-* itertools
-* Sobol_input_generator
-* server
-* profile
+* py-spy
 
 ## Running the code
 
 To run the model, one needs to run the geo_model2.py file. At the bottom of this file, printing of output can be (un)hashed 
-to print the desired output of the model.
+to print the desired output of the model. Alternatively, can the model be easily imported into any new python file and run from there.
 
 
 ## Repository structure
@@ -51,5 +50,9 @@ to print the desired output of the model.
 |Server.py| Contains the functions to simulate the spatial dynamics on a map.|
 |Sobol_Run.py| Contains the code to run the First and total order sensitivity analysis.|
 |list_of_borders.py| Contains a list with tuples for every country with its neighbours.|
-
-
+|Experiments.ipynb|Notebook including all the code necessary to run the experiments.|
+|final_eu_countries.geojson| Geojson holding the shapedata for the model.|
+|network_analysis.py| Includes modules to construct the similarity network and evaluate the modularity.|
+|TEST_Country2.py| Unit test for the country class.|
+|TEST_GeoModel2.py| Unit test for the geo_model class.|
+|profile.svg| Relative performance profile of the modules in our model.|
