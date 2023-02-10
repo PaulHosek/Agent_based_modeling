@@ -60,7 +60,6 @@ class Country(mg.GeoAgent):
         self.calculate_welfare()
         self.calculate_mrs()
         self.calculate_adoption()
-        # print("dirty",self.pred_dirty* self.nr_dirty)
         # print("clean",self.pred_clean* self.nr_clean)
 
         # energy cap
@@ -249,5 +248,6 @@ class Country(mg.GeoAgent):
         Reduce predisposition of dirty power based on how many power plants consume it.
         """
         self.pred_dirty -= self.nr_dirty * self.predisposition_decrease
+        print(self.pred_dirty)
         if self.pred_dirty < 0:
             self.pred_dirty = 0
