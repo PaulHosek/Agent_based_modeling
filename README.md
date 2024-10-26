@@ -1,6 +1,7 @@
 # Green Energy Adoption in the European Union
 
-![alt text](Eu%20energy%20adoption.png)
+<img src="Eu%20energy%20adoption.png" width="250" alt="alt text">
+
 
 ## Contributors:
 
